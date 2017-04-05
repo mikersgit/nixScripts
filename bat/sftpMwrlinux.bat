@@ -1,0 +1,1 @@
+"c:\Program Files\Putty\psftp" mikers@mwrlinux.fc.hp.com

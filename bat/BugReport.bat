@@ -1,0 +1,9 @@
+echo off
+rem batch file to download daily bug report in CSV format
+set prog="c:\Program Files (x86)\Mozilla Firefox\firefox.exe"
+rem set ieprog="C:\Program Files (x86)\Internet Explorer\iexplore.exe"
+set bugUrl=http://link.hp.com/u/1a8g
+start "report" %prog% %bugUrl%
+
+rem the short URL is a shortening of this monster:
+rem https://bugzilla.houston.hp.com:1181/bugzilla/buglist.cgi?bug_severity=blocker&bug_severity=critical&bug_severity=major&bug_severity=normal&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&classification=Protocols&columnlist=bug_id%2Cassigned_to%2Cshort_short_desc%2Cbug_severity%2Ctarget_milestone%2Creporter%2Cstatus_whiteboard%2Cchangeddate%2Cbug_status%2Cversion%2Copendate%2Ccf_foundby%2Ccf_alsoseenby%2Ckeywords%2Ccf_probability%2Ccf_defecttype%2Cproduct%2Ccomponent%2Cdeadline%2Ccf_redzonereviewflag%2Cpriority%2Ccf_releasenote%2Ccf_bedrock%2Ccf_targetbuild&component=%2AUnknown%20%28Triage%29-AAUM&component=%2AUnknown%20%28Triage%29-NFS&component=%2AUnknown%20%28Triage%29-SMB&component=Authentication&component=Authentication-AAUM&component=Authentication-NFS&component=Documentation-AAUM&component=Documentation-NFS&component=Documentation-SMB&component=Install%2FUpgrade-AAUM&component=Install%2FUpgrade-NFS&component=Install%2FUpgrade-SMB&component=Legacy%20Manageability-NFS&component=Legacy%20Manageability-SMB&component=Manageability-AAUM&component=Manageability-NFS&component=Manageability-SMB&component=Other-AAUM&component=Other-NFS&component=Other-SMB&component=Server-AAUM&component=Server-NFS&component=Server-SMB&component=User%20Mapping-AAUM&f1=OP&f2=version&f3=target_milestone&f4=CP&f5=target_milestone&j_top=OR&o2=anywordssubstr&o3=anywordssubstr&o5=anywordssubstr&product=Protocols-AAUM&product=Protocols-NFS&product=Protocols-SMB&query_format=advanced&v2=astra%20unspecified&v3=astra%20review%20master&v5=astra%20atlas%20&ctype=csv&human=1
