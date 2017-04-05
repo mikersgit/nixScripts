@@ -1,0 +1,21 @@
+#!/bin/bash
+SVNHOST='http://ib51-31.ib.usa.hp.com'
+BRANCHBASE='/root/workspace'
+BUG=''
+SVNBRANCHBASE='branches/private/michael.roberts'
+
+SVNFROM="${SVNHOST}/trunk/fmt_0"
+SVNTO="${SVNHOST}/${SVNBRANCHBASE}/bug${BUG}/fmt_0"
+MESSAGE="Creating branch for work on bug ${BUG}"
+
+WCOPY="${BRANCHBASE}/bug${BUG}"
+
+[[ ! -d ${WCOPY} ]] && mkdir -p ${WCOPY}
+
+svn copy -m "${MESSAGE}" \
+	--parents ${SVNFROM} \
+	${SVNTO}
+	
+cd ${WCOPY}
+
+svn co ${SVNTO}

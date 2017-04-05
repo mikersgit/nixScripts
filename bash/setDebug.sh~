@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# sets maximum cfrd debug
+DefMask='0x00000006'
+FullMask='0x00203016'
+
+CMD='/usr/local/ibrix/bin/ibrcfrctl'
+port=$(ps -o args -p$(pgrep ibrcfrd)| awk 'FS="=" {printf("%s",$3)}')
+
+if (( DEFAULT ))
+then
+        ${CMD}  --op=udaemon --port=${port} --logflag=${DefMask}
+else
+        ${CMD}  --op=udaemon --port=${port} --logflag=${FullMask}
+fi

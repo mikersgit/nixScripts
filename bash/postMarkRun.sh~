@@ -1,0 +1,173 @@
+#!/bin/bash
+
+# setup two clusters to run continuous CRR with postmark as the load.
+# This setup assumes that the 'ibrix_nic' configuration is already complete
+# on both clusters.
+# Actions taken:
+#       1. register clusters with eachother via ssh
+#       2. export target file system via ssh
+#       3. pull postmark package to source cluster FM if needed
+#       4. configure postmark for selected source file system
+#       5. start continuous CRR task
+#       6. start postmark
+#       7. monitor target file system for completion of replication of
+#          postmark test (0 files remaining in target file system)
+#       8. stop CRR task on completion
+#       (9.) there is a 'takedown' function currently commented out
+#            that could be used to un-export and un-register the clusters
+#################################
+
+fsbDir='/opt/fsbench'
+resDir='/root/postmarkres'
+ibBin='/usr/local/ibrix/bin'
+
+# select src file system from mounted ibrix file systems
+#
+function selectSrcFS() {
+
+        echo 'select file system to replicate and run postmark'
+        select srcFS in $(df -t ibrix | awk '$1 !~ /^Fi/ {printf("%s\n",$1)}')
+        do
+                break
+        done
+} # end selectSrcFS
+
+
+#
+# print banner with stars
+#
+function msg(){
+	local cnt=${#1}
+	local sline=''
+	# create line of stars 4 longer than length of first argument to msg
+	for ((c=1;c<=(cnt+4);c++)); { sline=${sline}'*'; }
+	#
+	# print 'full, zeros' out similar to:
+        # *************
+        # * full, zeros
+        # *************
+	#
+	echo -e "\n\t${sline}\n\t* ${@}\n\t${sline}\n"
+} # end msg()
+
+# determine if postmark and iozone are already installed
+# if not then pull needed components from dogfood and install
+#
+function psmSetup() {
+        hasFsbench=$(ls ${fsbDir} 2>/dev/null| wc -l)
+
+        psmPkg='rhel5_5_postmark_iozone.tar.bz'
+        psmPkgLoc='http://16.125.127.75/home_dirs/mwroberts/bin'
+        sysstatPkg='sysstat-7.0.2-3.el5.x86_64.rpm'
+
+        if (( !hasFsbench ))
+        then
+                # do not pull pkg if already have it
+                msg "checking for ${psmPkg}"
+                cd
+                [[ ! -f ${psmPkg} ]] && curl -o ${psmPkg} ${psmPkgLoc}/${psmPkg}
+                cd /
+                tar jxf ~/${psmPkg}
+        fi
+
+        hasStat=$(rpm -qa sysstat\*|wc -l)
+        # do not install pkg if already have it
+        if (( !hasStat ))
+        then
+                rpm -hiv ${fsbDir}/${sysstatPkg}
+        fi
+
+        selectSrcFS
+
+        if [[ -f ${fsbDir}/setup_postmark.pl && ${#srcFS} -gt 0 ]]
+        then
+                rm -rf ${resDir}*
+                local here=$PWD
+                msg "configure postmark run"
+                cd ${fsbDir}
+                resDir=$(${fsbDir}/setup_postmark.pl -k ${resDir} -f ibrix -m /${srcFS} |
+                        grep ^creating |head -1|awk '{print $2}')
+                cd ${here}
+                if [[ ${#resDir} -eq 0 ]]
+                then
+                        echo "Could not determine postmark results directory"
+                        exit 2
+                fi
+        else
+                echo "no file system selected"
+                exit 1
+        fi
+
+} # end psmSetup
+
+# unexport file system and deregister clusters
+#
+function takeDown() {
+        ssh ${targFM} "${ibBin}/ibrix_crr_export -U -f ${targFS}"
+        ssh ${targFM} "${ibBin}/ibrix_cluster -d -C ${srcCluster}"
+        ${ibBin}/ibrix_cluster -d -C ${targCluster}
+}
+
+isActive=$(${ibBin}/ibrix_fm -i |
+        awk '{if ($0 ~ /\(passiv/) print 0
+              if ($0 ~ /\(active/) print 1
+             }')
+
+# if this is the active FM then proceed, else exit
+#
+if (( isActive ))
+then
+        read -p"target FM VIP: " targFM 
+        read -p"target FS name: " targFS 
+
+        targCluster=$(ssh ${targFM} "${ibBin}/ibrix_fm_tune -l " |awk '$1 ~ /^clusterName/ {print $2}')
+        srcCluster=$(${ibBin}/ibrix_fm_tune -l |awk '$1 ~ /^clusterName/ {print $2}')
+        srcFM=$(${ibBin}/ibrix_nic -l |grep Cluster | grep ":[0-9] "| awk '{print $(NF-1)}')
+
+        # register clusters w/ eachother
+        #
+        msg "register with  ${targCluster}"
+        ${ibBin}/ibrix_cluster -r -C ${targCluster} -H ${targFM}
+        msg "register with  ${srcCluster}"
+        ssh ${targFM} "${ibBin}/ibrix_cluster -r -C ${srcCluster} -H ${srcFM}"
+        msg "export target file system ${targFS}"
+        ssh ${targFM} "${ibBin}/ibrix_crr_export -f ${targFS} -C ${srcCluster}"
+
+        psmSetup
+
+        # start continuous CRR task
+        #
+        msg "start continuous CRR from ${srcFS} to ${targFS}"
+        ${ibBin}/ibrix_crr -s -f ${srcFS} -C ${targCluster} -F ${targFS}
+        taskID=$(${ibBin}/ibrix_crr -l | awk '$1 ~ /crr/ {print $1}')
+
+        # start postmark task
+        #
+        msg "Start postmark"
+        cd ${resDir}
+        ${resDir}/postmark_run_script.sh
+
+        # monitor target for file count going to zero
+        #
+        msg "monitor target clusters for completion"
+        cnt=99
+        date
+        while (( cnt > 0 ))
+        do
+                cnt=$(ssh ${targFM} "ls /${targFS}" | grep -v lost | wc -l)
+                sleep 60
+        done
+        date
+
+        # stop CRR job
+        #
+        msg "Stop CRR task ${taskID}"
+        ${ibBin}/ibrix_crr -k -n ${taskID}
+
+        # unexport file system and deregister clusters
+        #
+        ## takedown
+else
+        echo "This must be run on the active FM of a cluster"
+        exit 1
+fi
