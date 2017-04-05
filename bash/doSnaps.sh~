@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# Command to test logging behavior of Continuous CRR and native snapshots
+#
+# creates CRR job, set debug, then snap tree, then touches file and creates snaps in a loop
+# flushes logs
+#
+
+
+# create directory structure with a file at the end with date info in it
+s_fs='fs3_42'
+s_dir='mwr0/mwr1/mwr2'
+s_file=/${s_fs}/${s_dir}/$(date '+%d%H%M%S')dateFile
+s_bname='mwr'
+t_fs='fs4_42'
+cnt=4
+
+echo -e "\n########\n\tClear /${s_fs}/mwr0 and /${t_fs}/mwr0 directories \n##########"
+rm -rf /${s_fs}/mwr0
+rm -rf /${t_fs}/mwr0
+mkdir -p /${s_fs}/${s_dir}
+
+# sets maximum cfrd debug
+
+CMD='/usr/local/ibrix/bin/ibrcfrctl'
+port=$(ps -o args -p$(pgrep ibrcfrd)| awk 'FS="=" {printf("%s",$3)}')
+${CMD}  --op=udaemon --port=${port} --logflag=0x00203016
+
+# put supplied message and current date/time in file
+#
+function touch_sfile() {
+ echo -e "\t${@}  \c" >> ${s_file}
+ date >> ${s_file}
+}
+
+# start Continuous CRR (same cluster different file system)
+#
+ibrix_cfrjob -s -f ${s_fs} -F ${t_fs}
+
+# let replication drain
+sleep 4
+
+touch_sfile "First touch"
+
+# sleep a few seconds to let the replication complet
+sleep 4
+
+echo -e "\n########\n\tList any snapshots\n##########"
+ibrix_nsnap -l # list snaps
+
+# mark snap tree
+#
+ibrix_nsnap -m -f ${s_fs} -P ${s_dir}
+touch_sfile "Marked snaptree"
+
+((c=cnt+1))
+echo -e "\n########\n\tCreate $c snapshots\n##########"
+
+for ((i=0;i<=cnt;i++))
+{
+        # mark file then create snapshot
+        touch_sfile "created ${i} snapshot"
+        echo -e "\t########\n\t${s_file} contents\n\t##########"
+        cat ${s_file}
+        ibrix_nsnap -c -f ${s_fs} -P ${s_dir} -n ${s_bname}${i}
+
+        echo -e "\n########\n\tCreated ${i} snapshot\n##########"
+
+        # sleep a few seconds to let the replication complet
+        sleep 4
+}
+
+echo -e "\n########\n\tList any snapshots\n##########"
+ibrix_nsnap -l # list snaps
+ibrix_nsnap -l -s -f ${s_fs}
+
+# echo -e "\n########\n\tRemove any snapshots\n##########"
+# for s in $(ibrix_nsnap -l -s -f ${s_fs} | grep 2011 | awk '{print $2}')
+# {
+  # ibrix_nsnap -d -f ${s_fs} -P ${s_dir} -n ${s}
+# }
+
+# echo -e "\n########\n\tUNmark snaptree \n##########"
+# ibrix_nsnap -m -U -f ${s_fs} -P ${s_dir}
+
+echo -e "\n########\n\tflush crr logs\n##########"
+ibrcfrctl  --op=udaemon --port=9171 --set-mask=1
+
+echo -e "\n########\n\tList crr jobs, kill last one started (twice)\n##########"
+ibrix_cfrjob -l

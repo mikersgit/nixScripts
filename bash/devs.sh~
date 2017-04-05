@@ -1,0 +1,419 @@
+#!/bin/bash
+
+# select drive devices to use for file system creation.
+# present a selection list from non-root/boot devs
+#
+# script to check if devices are multipath. Write letters to device
+# and read them back.
+# create file system
+# start-up ibrix
+# configure VDS domain
+# start emulator
+#################################################
+
+#
+# print banner with stars
+#
+function msg(){
+	local cnt=${#1}
+	local sline=''
+        local c
+	for ((c=1;c<=(cnt+4);c++)); { sline=${sline}'*'; }
+	echo -e "\n\t${sline}\n\t* ${@}\n\t${sline}\n"
+} # end msg()
+
+function devInit() {
+    # get root device from grub boot line
+    rdev=$(grep kernel /boot/grub/grub.conf |
+            grep -v '^#'                     |
+            awk '{for (f=1;f<NF;f++)
+                    {
+                    if ($f ~ /^root/) {
+                        c=split($f,a,"=")
+                        c1=split(a[c],v,"/")
+                        print v[3]
+                       }
+                    }
+                }')
+
+    # determine the physical device from the lv name
+    #
+    idev=$(( vgdisplay -v ${rdev} 2>/dev/null |
+             awk '$0 ~ /PV Name/ {gsub("[[:digit:]]","")
+                     sub("/dev/","");print $NF}'
+
+    # also get the device map idea of the root device
+    #
+    awk '$0 !~ /^#/ {sub("/dev/","");print $NF}' /boot/grub/device.map ) |
+    sort -u)
+
+    # get the available partitions minus the boot/root devices
+    declare -xa devs=($(cat /proc/partitions |
+                         grep sd |grep -v ${idev}|
+                         awk '{print $NF}'))
+
+    #
+    # have user select the devices to use
+    #
+
+    echo "Select the devices to use, one at a time, or 'QQ' to end selection"
+    echo "or 'ALL' to use all devices"
+    j=0
+    select wdev in ${devs[*]} QQ ALL
+    do
+        if [[ ${wdev} = 'QQ' ]]
+        then
+            break
+        elif [[ ${wdev} = 'ALL' ]]
+        then
+            sdevs=(${devs[*]})
+            break
+        else
+            sdevs[${j}]="${wdev}"
+            ((j+=1))
+        fi
+    done
+    echo ${sdevs[*]}
+   
+    d=0
+    for i in ${sdevs[*]}
+    {
+        local DEV=/dev/${i}
+        if ${FMT_0}/bin/ibfsck -n ${DEV} 2>&1 >/dev/null
+        then
+            usedDevs[$d]=${DEV}
+            ((d+=1))
+        fi
+    }
+
+    if ((d>0))
+    then
+        echo "These devices have IBRIX FS present:"
+        echo "${usedDevs[*]}"
+        read -p"Continue (y/[n]): " ans
+        [[ ${ans} != [yY] ]] && exit 3
+    fi
+
+    echo "write unique string to selected dev files"
+
+    for i in ${sdevs[*]}
+    {
+        local DEV=/dev/${i}
+        echo ${i}${i}${i}${i}${i}${i}${i}${i} > fillit
+        dd if=fillit of=${DEV} count=1  >/dev/null 2>&1
+    }
+
+    echo "read strings back from dev files, should all be different"
+    echo "if not then some are multi-path"
+
+    for i in ${sdevs[*]}
+    {
+        local DEV=/dev/${i}
+        echo -e "${DEV} \c"
+        dd if=${DEV} of=out${i} count=1  >/dev/null 2>&1
+        cat out${i}
+    }
+} # end devInit
+
+function restoreConfig() {
+    configFile="${1}"
+    . ${configFile}
+    hosts=(${hosts_c})
+    sdevs=(${sdevs_c})
+    echo "${hosts_c}"
+    echo "${hosts_n}"
+    echo "${sdevs_c}"
+    echo "${mount_point}"
+    echo "${ifs}"
+    echo "${FMT_0}"
+    echo "${iseg_n}"
+    echo "${idbg}"
+    echo "${iallocp}"
+    echo "${san}"
+    echo "${Vdomain}"
+    j=0
+    for ((i=0;i<iseg_n;i++))
+    {
+        ((segnum=i+1))
+        echo "ISEGS for ${i}: ${hosts[${j}]} ${segnum} ${sdevs[${i}]}"
+        isegs[${i}]="${hosts[${j}]} ${segnum} ${sdevs[${i}]}"
+    }
+}
+
+function saveConfig() {
+    ts=$(date '+%Y%m%d%H%M%S')
+    configFile="${HOME}/config_$(hostname)_${ts}"
+    cat /dev/null > ${configFile}
+    echo "export hosts_c=\"${hosts[*]}\"" >> ${configFile}
+    echo "export hosts_n=${hosts_n}" >> ${configFile}
+    echo "export sdevs_c=\"$(echo ${sdevs[*]})\"" >> ${configFile}
+    echo "export mount_point=${mount_point}" >> ${configFile}
+    echo "export ifs=${ifs}" >> ${configFile}
+    echo "export FMT_0=$FMT_0" >> ${configFile}
+    echo "export iseg_n=${iseg_n}" >> ${configFile}
+    echo "export idbg=0x3" >> ${configFile}
+    echo "export iallocp=LOCAL" >> ${configFile}
+    echo "export san=OFF" >> ${configFile}
+    echo "export Vdomain=${Vdomain}" >> ${configFile}
+    echo "Saved config in file: ${configFile}"
+} # end saveConfig
+
+#
+# mkibfs
+#
+#
+# set -x
+function f_mkibfs(){
+
+    function makeseg() {
+        ihost=$1
+        iseg=$2
+        idev="/dev/"$3
+        echo " " 
+        echo "=========================================================" 
+        echo makeseg $ihost $iseg $idev $my_host_id
+        if [ ! "$ihost" = "$my_host_id" ] ; then
+
+            echo SKIP -- dd if=/dev/zero of=$idev count=100 
+        else
+            echo dd if=/dev/zero of=$idev count=100
+                dd if=/dev/zero of=$idev count=100
+            echo " "
+            echo $FMT_0/bin/mkibfs $idev $ifs $ifs $iseg $iseg_n $ihost +++ -J size=4
+                $FMT_0/bin/mkibfs $idev $ifs $ifs $iseg $iseg_n $ihost
+        fi
+    }
+
+    function export_id() {
+        ihost_n=$1
+        host_id=$2
+        echo export_id $ihost_n $host_id _my_h $_my_host
+        if [ "$ihost_n" = "$_my_host" ] ; then
+            echo export my_host_id=$host_id
+            export my_host_id=$host_id
+        fi
+    }
+
+    for ((h=0;h<${hosts_n};h++));{ export_id ${hosts[${h}]} ${hosts[${h}]}; }
+
+    for  ((h=0;h<${#isegs[*]};h++)); { makeseg ${isegs[${h}]} ; }
+
+} # end f_mkibfs
+
+
+#######
+# START
+#######
+function start() {
+
+    if [ "$FMT_0" = "" ]; then
+        echo 'FMT_0 not set!'
+        exit 2
+    fi
+
+    RTOOL="$FMT_0/bin/rtool"
+    linSrc="$FMT_0/bin/linux_src_info"
+    export _kernel_ver=`$linSrc --version | cut -d '.' -f 1,2`
+
+    start_host=$_my_host
+
+    if [ "$idbg" = "" ]; then
+       idbg=0xffffff
+    fi
+
+    function doCmd() {
+        echo "    "${@}
+        eval ${@}
+    }
+
+    function dohost() {
+        echo "dohost() p1=" $1 ", p2=" $2 ", p3=" $3
+        ihost=$1
+        idhost=$2
+        t=$3
+        if [ ! "$ihost" = "$_my_host" ] ; then
+            doCmd "${RTOOL} defhost -udp $ihost $idhost $t"
+        else
+            doCmd "${RTOOL} localhost -udp $idhost"
+        fi
+    }
+
+    function modseg() {
+        ihost=$1
+        iseg=$2
+        idev=/dev/$3
+        doCmd "${RTOOL} modseg $idev $ifs $ifs $iseg $iseg_n $ihost"
+    } # end modseg
+
+    DNAME=$FMT_0/bin
+    IPFS1_MOD=$DNAME/ipfs1.`uname -r`.`$linSrc --arch`.o
+    IBRIX_MOD=$DNAME/ibrix.`uname -r`.`$linSrc --arch`.o
+
+    if [ ! -f $IPFS1_MOD ] ; then
+        IPFS1_MOD=$DNAME/ipfs1.o
+    fi
+
+    if [ ! -f $IBRIX_MOD ] ; then
+        echo " cannot find file " $IBRIX_MOD
+        IBRIX_MOD=$DNAME/ibrix.o
+    fi
+
+    if [ "$_kernel_ver" = "2.6" ] ; then
+        doCmd "insmod $IPFS1_MOD"
+        doCmd "insmod $IBRIX_MOD"
+    else
+        msg "Unsupported Kernel: ${_kernel_ver}"
+    fi
+
+    doCmd "${RTOOL} debug trace $idbg"
+
+    msg "Hosts are: ${hosts[*]}"
+    for ((h=0;h<${#hosts[*]};h++)); { dohost ${hosts[${h}]} ${hosts[${h}]} ; }
+
+    for ((h=0;h<${#isegs[*]};h++)); { modseg ${isegs[${h}]} ; }
+
+    doCmd "${RTOOL}   allocp $ifs $iallocp"
+
+    doCmd "mount -t ibrix $ifs /ibrix -o fsname=$ifs"
+
+    doCmd "${RTOOL} startexport"
+} # end start
+
+function configEmulate() {
+
+    mkdir -p ${mount_point}/${Vdomain}
+
+    ${FMT_0}/bin/vds_config -s ${Vdomain} ${mount_point}/${Vdomain}
+    ${FMT_0}/bin/vds_emulator -d ${Vdomain} ${mount_point}
+
+} # end configEmulate
+
+function restart() {
+
+    msg "kill emulator"
+    pkill vds_emulator
+
+    msg "restart NFS"
+    service nfs restart
+
+    msg "unmount ${mount_point}"
+    if umount ${mount_point}
+    then
+        msg "remove ibrix kernel module"
+        if rmmod ibrix
+        then
+            msg "remove ipfs1 kernel module"
+            if rmmod ipfs1
+            then
+                msg "start ibrix"
+                start
+            fi
+        fi
+    fi
+} # end restart
+
+function setIsegs() {
+    (( segSplit = iseg_n/hosts_n ))
+    j=0
+    for ((i=0;i<segSplit;i++))
+    {
+        ((segnum=i+1))
+        echo "ISEGS for ${i}: ${hosts[${j}]} ${segnum} ${sdevs[${i}]}"
+        isegs[${i}]="${hosts[${j}]} ${segnum} ${sdevs[${i}]}"
+    }
+} # end setIsegs
+
+function usage() {
+	echo "usage: ${0##*/} [-cC ARG] [-fskrdAe]"
+	exit 2
+} # end usage
+
+##############
+#    MAIN
+##############
+RESTORE=0;MKFS=0;START=0;RESTART=1;CONFIG=0;DISKS=0;ALL=0;EMU=0
+while getopts :cC:fskrdAe OPT; do
+    case $OPT in
+	c) # create config file only
+	
+	;;C) # use supplied config file
+	     configFile="$OPTARG"
+	     RESTORE=1
+	;;f) # Create file system then stop
+	     MKFS=1
+	;;s) # Start Ibrix
+	     START=1
+	;;k) # Kill Ibrix
+	     KILL=1
+	;;r) # restart (kill, then start) Ibrix
+	     RESTART=1
+	;;d) # List available disks
+	     DISKS=1
+	;;A) # configure disk, create file system, start Ibrix, start VDS emulator
+	     ALL=1
+	;;e) # Start VDS emulator, assumes setup is complete
+	     EMU=1
+	;;*)  usage ${0##*/}
+    esac
+done
+
+export _my_host=`hostname -s`
+DNAME=${0%/*}
+
+
+if (( RESTORE ))
+then
+    restoreConfig ${1}
+    declare -p hosts
+    declare -p sdevs
+else
+    read -p"source locations include 'fmt_0' as last element: " FMT_0
+    export FMT_0=${FMT_0}
+
+    echo "FMT_0=$FMT_0"
+
+    devInit
+
+    read -p"name of file system (def='test'): " ifs
+    [[ -z ${ifs} ]] && ifs='test'
+    export ifs=${ifs}
+
+    # read -p"number of segments to use(def=${#sdevs[*]}): " iseg_n
+    export iseg_n=${#sdevs[*]}
+    export idbg=0x3
+
+    export iallocp=LOCAL
+    export san=OFF
+
+    read -p"file system mount point (def='/ibrix'): " mount_point
+    [[ -z ${mount_point} ]] && mount_point="/ibrix"
+    export mount_point=${mount_point}
+
+    read -p"VDS domain (def='xyz'): " Vdomain
+    [[ -z ${Vdomain} ]] && Vdomain="xyz"
+    export Vdomain=${Vdomain}
+
+    read -p"number of hosts to use(def=1): " hosts_n
+    [[ -z ${hosts_n} ]] && hosts_n=1
+    export hosts_n=${hosts_n}
+
+    echo "host(s) to use"
+    for ((i=0;i<${hosts_n};i++))
+    {
+        hn=$(hostname -s)
+        read -p"hostname ${1} (def: ${hn}): " ihost
+        [[ -z ${ihost} ]] && ihost=${hn}
+        hosts[$i]="${ihost}"
+    }
+fi # end if not restore
+
+if (( ! RESTORE ))
+then
+    saveConfig
+    setIsegs
+fi
+
+f_mkibfs
+start
+configEmulate
+# restart

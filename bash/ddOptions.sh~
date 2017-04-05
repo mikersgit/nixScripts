@@ -1,0 +1,127 @@
+#!/bin/bash
+
+########
+# create 10 KB (nominal) files with different characteristics
+# (random, sparse, all zeros) using 'dd' command
+# compress these files to show the effect compression will have
+# show the 'du -kh' and the 'ls -lh' reported sizes
+########
+
+#
+# sizeIt not called anywhere yet
+#
+#  this function does the manipulation needed to create files of arbitrary size either
+#  sparse or fully populated
+#
+function sizeIt() {
+	input=${@}
+	declare -a units=(KB MB   GB      TB)
+	declare -a multp=(1  1024 1024000 1024000000)
+
+	index=99
+	for ((i=0;i<${#units[*]};i++))
+	{
+		if echo ${@} |grep --silent -i ${units[$i]}
+		then
+			index=${i}
+			break
+		fi
+	}
+
+	function doDD(){
+
+		case ${ddtype} in
+			f) dd if=/dev/zero of=fileF${@} bs=${bss} count=${cnt};;
+			s) dd if=/dev/zero of=fileS${@} bs=${bss} count=1 seek=${num}${u};;
+		esac
+	}
+
+	function fullit() {
+		ddtype=f
+		if ((index<99 && index>=0))
+		then
+			num=$(echo ${@} | tr '[:lower:]' '[:upper:]' | sed s/${units[${index}]}//)
+			echo "Multiplier: ${num}"
+			echo "Unit: ${units[${index}]}"
+			bss="1k"
+			cnt=1
+			if (( index == 0 ))
+			then
+				cnt=${num}
+			else
+				(( cnt = ( num * ${multp[${index}]}) ))
+			fi
+			doDD ${@}
+		fi
+	} # end fullit()
+
+	function sparseit() {
+		ddtype=s
+		if ((index<99 && index>=0))
+		then
+			num=$(echo ${@} | tr '[:lower:]' '[:upper:]' | sed s/${units[${index}]}//)
+			echo "Multiplier: ${num}"
+			echo "Unit: ${units[${index}]}"
+			u=$(echo ${units[${index}]}| sed 's/B//') # taking the 'B' off uses powers of 2 instead of 10
+			bss="1"
+			doDD ${@}
+		fi
+	} # end sparseit()
+
+	if (( index >=99 || index < 0 ))
+	then
+		echo "Invalid units '$(echo ${@}| tr '[:digit:]' ' ' | awk '{print $1}')'"
+		exit 1
+	else
+		fullit ${@}
+		sparseit ${@}
+	fi
+
+} # end sizeIt()
+
+#
+# print banner with stars
+#
+function msg(){
+	local cnt=${#1}
+	local sline=''
+	# create line of stars 4 longer than length of first argument to msg
+	for ((c=1;c<=(cnt+4);c++)); { sline=${sline}'*'; }
+	#
+	# print 'full, zeros' out similar to:
+        # *************
+        # * full, zeros
+        # *************
+	#
+	echo -e "\n\t${sline}\n\t* ${@}\n\t${sline}\n"
+} # end msg()
+
+#
+# create file with desired characteristics
+# r==random , z==zeros
+# f==full,    s==sparse
+#
+function crFile(){
+	case ${1} in
+		z) ifd=/dev/zero
+		   [[ $2 = 'f' ]] && ofn=zero
+		   [[ $2 = 's' ]] && ofn=${1}sparse
+		;;
+		r) ifd=/dev/urandom
+		   [[ $2 = 'f' ]] &&  ofn=rand
+		   [[ $2 = 's' ]] &&  ofn=${1}sparse
+		;;
+	esac
+	if [[ $2 = 'f' ]] ; then opts='bs=1k count=10';        ft="full"; fi
+	if [[ $2 = 's' ]] ; then opts='bs=1 count=1 seek=10k'; ft="sparse"; fi
+	msg "${ft}, dd if=${ifd} of=${ofn} ${opts}"
+	dd if=${ifd} of=${ofn} ${opts}
+	gzip -c ${ofn} > ${ofn}.gz
+	du -kh ${ofn} ${ofn}.gz
+	ls -lh ${ofn} ${ofn}.gz
+}
+
+#
+# loop through all of the combinations of r(f,s), z(f,s)
+#
+for t in r z ; { for f in f s ;{ crFile ${t} ${f} ; } ; }

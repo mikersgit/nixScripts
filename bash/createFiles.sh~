@@ -1,0 +1,43 @@
+#!/bin/bash
+
+NumFiles=$1
+SizFiles=$2 #(in MB)
+NamFiles="${SizFiles}MB"
+
+if (( NumFiles < 100 ))
+then
+        NumDirs=1
+else
+        #(( NumDirs = 10 * ( NumFiles / 100 ) ))
+        (( NumDirs = ( NumFiles / 100 ) ))
+fi
+
+(( NumFilesPdir = NumFiles/NumDirs ))
+
+#assume starting in PWD
+
+top=${PWD}
+
+cd ${top}
+if [[ ! -f ~/${SizFiles}MB ]]
+then
+        # using dd create non-sparse files of random characters
+        ~/bin/ddOptions.sh -t full -N ~/${NamFiles} -z ${NamFiles} -c random
+        #~/bin/ddOptions.sh -t full -N ~/40MB -z 40MB -c random
+        #~/bin/ddOptions.sh -t full -N ~/4MB -z 4MB -c random
+fi
+
+for ((d=0;d<${NumDirs};d++))
+{
+	[[ ! -d ${d} ]] && mkdir $d
+	cd $d
+	{
+	for ((k=0;k<${NumFilesPdir};k++))
+	{
+	#	cp ~/400MB 400MB_${k}
+		#cp ~/40MB 40MB_${k}
+		cp ~/${NamFiles} ${NamFiles}_${k}
+	}
+	} &
+	cd ${top}
+}

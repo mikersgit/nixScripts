@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# script to run Coverity analysis on a sub-tree of fmt0
+
+# ias/cpp - use defaults (C/C++)
+# ias/modules - use java static
+# fs - use defaults
+# tools/ibrcfr - use defaults
+
+#BASE='/root/source/bug13118/fmt_0/fmt_0'
+
+# Assume running from 'fmt_0'
+#
+BASE=${PWD}
+DB='/var/coverity/coverityDM'
+
+# available code types used for analysis phase
+#
+cType=' '     # default C/C++
+jType='-java' # java
+
+ARGS[0]='tools/ibrcfr:'${cType}':/var/coverity/coverityIB:IBRIX'
+ARGS[1]='ias/cpp:'${cType}':/var/coverity/coverityIB_IasCpp:IbrixIasCpp'
+ARGS[2]='ias/modules:'${jType}':/var/coverity/coverityIB_IasMod:IbrixIasMod'
+
+# for regular builds 2048m is OK for java builds. When building for Coverity
+# double it to 4096
+#
+function javaCleanup() {
+
+	# kill any lingering old coverity java procs
+	#
+	pids=$(ps -ef | grep java | grep coverit |awk '{print $2 " " $3}')
+	(( ${#pids} > 0 )) && ( kill ${pids} ;sleep 3 ; kill -9 ${pids} )
+
+	# modify maven opts in Makefile
+	#
+	mepid=$$
+	sed 's/2048m/4096m/' Makefile > m${mepid} 
+	[[ -s m ]] && /bin/mv m${mepid} Makefile
+	rm -f m${mepid} 
+}
+
+# Run coverity build/analysis/commit based on parameters for each sub-tree
+#
+function covrun() {
+
+	subDir=$(echo ${@}| cut -d":" -f 1)
+	aType=$(echo ${@}| cut -d":" -f 2)
+	ibDir=$(echo ${@}| cut -d":" -f 3)
+	prod=$(echo ${@}| cut -d":" -f 4)
+
+	cd ${BASE}/${subDir}
+
+	javaCleanup
+	make clean 
+	rm -rf ${ibDir}
+	if cov-build --dir ${ibDir} make
+	then
+		if cov-analyze${aType} --dir ${ibDir}
+		then
+			cov-commit-defects --datadir ${DB} \
+		   		--product ${prod} \
+		   		--user admin --dir ${ibDir}
+			make clean ; make
+		fi
+	fi
+}
+
+# tools/ibrcfr - use defaults (C/C++)
+covrun ${ARGS[0]}
+
+# ias/cpp - use defaults (C/C++)
+covrun ${ARGS[1]}
+
+# ias/modules - use java static
+javaCleanup
+covrun ${ARGS[2]}

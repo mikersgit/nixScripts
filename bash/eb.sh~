@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# edit two files, one in the current directory and one in another tree
+# that differs only by the branch name.
+# mb == merge branch name (work in progress) [not a path]
+# cb == current branch name (known good) [not a path]
+# e.g.
+# cb=bretDcnReg
+# mb=dcnMrg
+
+
+if (( ${#cb} < 1 ))
+then
+	echo "need 'cb' and 'mb' defined in path"
+	exit 1
+fi
+
+cbpth=$(pwd | sed s/${mb}/${cb}/ )
+fl=$1
+emacs ${cbpth}/${fl} ${fl}

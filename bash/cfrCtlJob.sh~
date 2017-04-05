@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# script to query the local FSN for job info
+
+BIN='/usr/local/ibrix/bin'
+
+# get port
+port=$(ps -o args -p $( pgrep ibrcfrd) | awk '$0 ~ /port/ {c=split($NF,a,"="); print a[c]}')
+echo "Jobs that are active"
+${BIN}/ibrcfrctl --port=${port} --op=list
