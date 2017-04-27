@@ -103,14 +103,14 @@ Sub RzFormat(shtName As String, BzRange As String, LowBzCell As String, HighBzCe
     Selection.Copy
     ActiveWindow.SmallScroll Down:=3
     ' Go to cell that has hyperlink to the first cell that contains the lower set of bug numbers
-    Range(LowBzCell).Select
-    Selection.Hyperlinks(1).Follow NewWindow:=False, AddHistory:=True
-    ' Paste the copied list of new bug numbers into the lower list
-    ActiveSheet.Paste
-    Application.CutCopyMode = False
-    ' Go to cell that has hyperlink to the first cell that contains the upper set of bug numbers
-    Range(HighBzCell).Select
-    Selection.Hyperlinks(1).Follow NewWindow:=False, AddHistory:=True
+'    Range(LowBzCell).Select
+'    Selection.Hyperlinks(1).Follow NewWindow:=False, AddHistory:=True
+'    ' Paste the copied list of new bug numbers into the lower list
+'    ActiveSheet.Paste
+'    Application.CutCopyMode = False
+'    ' Go to cell that has hyperlink to the first cell that contains the upper set of bug numbers
+'    Range(HighBzCell).Select
+'    Selection.Hyperlinks(1).Follow NewWindow:=False, AddHistory:=True
     ' Insert formula to hyperlink to bugzilla, and copy to all cells
 '    ActiveCell.FormulaR1C1 = _
 '        "=HYPERLINK(CONCATENATE(R" & BzURLRow & "C1&INDIRECT(""c""&(ROW()+106))),INDIRECT(""c""&(ROW()+106)))"
@@ -145,11 +145,11 @@ Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
     Application.ScreenUpdating = False
     Application.Calculation = xlManual
     For Each bug In bugNums
-        strlen = Len(bug.Value)
-        If strlen <= 6 And strlen > 0 And bug.Value <> 0 Then
+        strlen = Len(bug.value)
+        If strlen <= 6 And strlen > 0 And bug.value <> 0 Then
             bugStr = "=Hyperlink(" & bzStr
-            bugStr = bugStr & " & " & bug.Value & "," & bug.Value & ")"
-            bug.Value = bugStr
+            bugStr = bugStr & " & " & bug.value & "," & bug.value & ")"
+            bug.value = bugStr
         End If
     Next bug
     ' Turn screen update and calculation back on
@@ -157,18 +157,31 @@ Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
     Application.ScreenUpdating = True
     Range("A2").Select
 End Sub
+Sub OpenBug()
+    ' Open single bug in bugzilla via firefox
+    OpenBugCommon "B3", "BZurls", "Bug number to open", "Bug Number"
+End Sub
+Sub OpenBugList()
+    ' Open a summary list of bugs in bugzilla via firefox
+    OpenBugCommon "B4", "BZurls", "Bug numbers to open quote list and separate by space", "Bug Numbers"
+End Sub
+Sub OpenBugCommon(URLcell As String, DataSht As String, Prompt As String, Title As String)
+    ' msg box to get bug number
+    Dim bugNum As String: bugNum = InputBox(Prompt, Title)
+    ' avoid getting error if no input from prompt
+    If Len(bugNum) < 5 Then Exit Sub
+    bzqueryFunc DataSht, URLcell, bugNum
+End Sub
 Sub rzbzquery()
     ' open firefox with Aurora bz query
     '
-    Dim ThisSht As String
-    ThisSht = "RedZone"
-    Dim URLCell As String
-    URLCell = "B1"
+    Dim ThisSht As String: ThisSht = "RedZone"
+    Dim URLcell As String: URLcell = "B1"
     
     ' bugzilla AuroraProtRedZone query to CSV output
     ' bzURL = "http://link.osp.hpe.com/u/24wb"
     Worksheets(ThisSht).Activate
-    bzqueryFunc (URLCell)
+    bzqueryFunc "BZurls", URLcell
     rzimportInfo
     RedZoneStatusSetup
     
@@ -177,23 +190,21 @@ Sub AVrzbzquery()
     ' open firefox with Avitus bz query
     '
     Dim ThisSht As String: ThisSht = "RedZoneAvitus"
-    Dim URLCell As String: URLCell = "B2"
+    Dim URLcell As String: URLcell = "B2"
     
     ' bugzilla AvitusProtRedZone query to CSV output
     ' bzURL = "http://link.osp.hpe.com/u/268u"
     Worksheets(ThisSht).Activate
-    bzqueryFunc (URLCell)
+    bzqueryFunc "BZurls", URLcell
     rzimportInfo
     RedZoneAvitusSetup
     
 End Sub
-Sub bzqueryFunc(URLCell As String)
+Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     ' expect a cell range with cell that contains URL to be passed in
-    Dim bzURL As String
-    bzURL = Worksheets("BZurls").Range(URLCell).Value
-    Dim browserPath As String
-    browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
-    Shell (browserPath & bzURL)
+    Dim bzURL As String:  bzURL = Worksheets(DataSht).Range(URLcell).value
+    Dim browserPath As String: browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
+    Shell (browserPath & bzURL & value)
 End Sub
 
 Sub rzimportInfo()

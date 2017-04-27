@@ -6,9 +6,7 @@ Attribute ForReview.VB_ProcData.VB_Invoke_Func = " \n14"
 ' ForReview Macro
 ' Sort on Target Milestone column for 'For Review'
 '
-    ClearFilters
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=17, Criteria1:= _
-        "For Review"
+    FilterOnValue "$A$1:$AH$100", "For Review", 17
     Columns("k:m").Select: Selection.EntireColumn.Hidden = True
 End Sub
 Sub TargettedBuilds()
@@ -18,9 +16,7 @@ Attribute TargettedBuilds.VB_ProcData.VB_Invoke_Func = " \n14"
 ' TargettedBuilds Macro
 ' Filter for Target Builds != '---'
 '
-    ClearFilters
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=13, Criteria1:="<>---", _
-        Operator:=xlAnd
+    FilterOnValue "$A$1:$AH$100", "<>---", 13
     Columns("i:l").Select: Selection.EntireColumn.Hidden = True
     Columns("i:l").Select: Selection.EntireColumn.Hidden = True
     Columns("q:y").Select: Selection.EntireColumn.Hidden = True
@@ -31,6 +27,9 @@ Sub FilterOnValue(fltrRng As String, fltrStg As String, fltrField As Integer)
 End Sub
 Sub noPriority()
     FilterOnValue "$A$1:$AH$100", "unsp*", 8
+End Sub
+Sub blocked()
+    FilterOnValue "$A$1:$AH$100", "block*", 20
 End Sub
 Sub InPlay()
 Attribute InPlay.VB_Description = "Bugs, not waived, not doc, not targetted, not 'For Review'"
@@ -64,9 +63,7 @@ Attribute Waivers.VB_ProcData.VB_Invoke_Func = " \n14"
 ' Waivers Macro
 ' bugs with waivers requested
 '
-    ClearFilters
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=12, Criteria1:= _
-        "Waiver Requested"
+    FilterOnValue "$A$1:$AH$100", "Waiver Requested", 12
     Columns("j:k").Select: Selection.EntireColumn.Hidden = True
     Columns("M:M").Select: Selection.EntireColumn.Hidden = True
     Columns("G:G").Select: Selection.EntireColumn.Hidden = True
@@ -90,11 +87,10 @@ Sub P0bugs()
 ' P0bugs Macro
 ' Filter for 'P0' bugs
 '
-    ClearFilters
     ' 8 is H "priority"
-    ActiveSheet.Range("$A$1:$AD$100").AutoFilter Field:=8, Criteria1:="P0"
+    FilterOnValue "$A$1:$AH$100", "P0", 8
 End Sub
-Sub FormatScrubSheet()
+Sub FormatScrubSheet(PrevSht As String)
 '
 ' FormatScrubSheet Macro
 ' Do the sort, and setup the top/bottom links
@@ -102,9 +98,10 @@ Sub FormatScrubSheet()
     ClearFilters
     Dim ThisSht As String: ThisSht = ActiveSheet.Name
     
-    Dim PrevSht As String
-    PrevSht = InputBox("M-D of sheet to compare against:", "Input sheet name")
-    PrevSht = "bugs-2017-" & PrevSht
+    ' simplified by passing the "copy from" sheet as the compare against sheet
+'    Dim PrevSht As String
+'    PrevSht = InputBox("M-D of sheet to compare against:", "Input sheet name")
+'    PrevSht = "bugs-2017-" & PrevSht
     
     pauseUpdates
 ' insertText Macro
@@ -182,7 +179,6 @@ Sub fillBlanks(NotesStart As String, NotesEnd As String)
     Selection.AutoFill Destination:=Range(NotesStart & ":" & NotesEnd), Type:=xlFillDefault
     Range(NotesStart & ":" & NotesEnd).Select
     Range(NotesStart).Select
-    
 End Sub
 Sub CopySheet()
 '
@@ -194,20 +190,32 @@ Sub CopySheet()
     
     ' get name for new sheet
     '
-    Dim NewSht As String
-    NewSht = InputBox("M-D of NEW sheet to copy TO:", "Input sheet name")
-        
-    Dim ThisSht As String
-    ThisSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
-    ThisSht = "bugs-2017-" & ThisSht
+    ' Dim NewSht As String
+    ' NewSht = InputBox("M-D of NEW sheet to copy TO:", "Input sheet name")
+    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
+    Dim NewSht As String: NewSht = "bugs-2017-" & Mo & "-" & Da
+    
+    Dim ThisSht As String: ThisSht = ActiveSheet.Name
+    ' Most of the time the "from" sheet has been the sheet where we select the copy button
+    ' so simplifying by just putting the current sheet directly in the variable
+'    Dim ThisSht As String
+'    ThisSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
+'    ThisSht = "bugs-2017-" & ThisSht
+
+    pauseUpdates
+    ' make sure the copy from sheet is the active sheet
+    ClearFilters
     Sheets(ThisSht).Select
     
     ' rename new sheet
     '
     Sheets(ThisSht).Copy before:=Sheets(1)
     Sheets(ThisSht & " (2)").Select
-    Sheets(ThisSht & " (2)").Name = "bugs-2017-" & NewSht
-    Sheets("bugs-2017-" & NewSht).Select
+    Sheets(ThisSht & " (2)").Name = NewSht
+    ' make new sheet the active sheet so call to Format operates on the correct sheet
+    ' NewSht = "bugs-2017-" & NewSht
+    Sheets(NewSht).Select
     
     ' open firefox with bz query
     '
@@ -216,8 +224,9 @@ Sub CopySheet()
     ' import data from csv from bugzilla
     AvimportInfo
     
+    enableUpdates
     ' format sheet
-    FormatScrubSheet
+    FormatScrubSheet ThisSht
     
 End Sub
 Sub AvBzQuery()
@@ -227,7 +236,7 @@ Sub AvBzQuery()
     Dim URLcell As String
     URLcell = "K3"
     
-    bzqueryFunc (URLcell)
+    bzqueryFunc "Data", URLcell
 End Sub
 Sub AvRefreshData()
     Dim ThisSht As String: ThisSht = ActiveSheet.Name
@@ -252,9 +261,7 @@ Sub AvimportInfo()
     
     Dim ScrubSheet As String: ScrubSheet = "Scrub_Avitus_RZ_bugs.xlsm"
     
-    Dim ImportSht As String
-    ImportSht = InputBox("M-D of CSV sheet to IMPORT from:", "Input sheet name")
-    ImportSht = "bugs-2017-" & ImportSht & ".csv"
+    Dim ImportSht As String: ImportSht = getMDstring & ".csv"
 
     ' wait 10 seconds
     ' Application.Wait (Now + TimeValue("0:00:10"))
@@ -265,6 +272,7 @@ Sub AvimportInfo()
     csvFullPath = dwnldDirPath & ImportSht
     Workbooks.Open (csvFullPath)
     Windows(ImportSht).Activate
+    Set CSVFile = ActiveWorkbook
     ActiveWindow.Zoom = 42
     Range("A2:F100").Select
     Selection.Copy
@@ -284,7 +292,12 @@ Sub AvimportInfo()
     Windows(ScrubSheet).Activate
     Range("L2").Select
     ActiveSheet.Paste
+    ' this next "copy" is just to prevent the "large clipboard" warning pop-up when the csv file is closed.
     Range("D2").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    
+    CSVFile.Close SaveChanges:=False
 End Sub
 Sub HideColumns()
 '
@@ -307,11 +320,11 @@ Sub UnHideColumns()
     Columns("A:AH").Select: Selection.EntireColumn.Hidden = False
     Range("E2").Select
 End Sub
-Sub bzqueryFunc(URLcell As String)
+Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     ' expect a cell range with cell that contains URL to be passed in
-    Dim bzURL As String:  bzURL = Worksheets("Data").Range(URLcell).Value
+    Dim bzURL As String:  bzURL = Worksheets(DataSht).Range(URLcell).value
     Dim browserPath As String: browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
-    Shell (browserPath & bzURL)
+    Shell (browserPath & bzURL & value)
 End Sub
 Sub DefValueForBlank(editRng As String, shtName As String)
     Dim Fields As Range
@@ -323,9 +336,9 @@ Sub DefValueForBlank(editRng As String, shtName As String)
     ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
     pauseUpdates
     For Each Field In Fields
-        strlen = Len(Field.Value)
+        strlen = Len(Field.value)
         If strlen < 1 Then
-            Field.Value = FieldStr
+            Field.value = FieldStr
         End If
     Next Field
     ' Turn screen update and calculation back on
@@ -352,5 +365,110 @@ Attribute regressionFilter.VB_ProcData.VB_Invoke_Func = " \n14"
     ClearFilters
     ActiveSheet.Range("$A$1:$AH$101").AutoFilter Field:=9, Criteria1:= _
         "=*regress*", Operator:=xlOr, Criteria2:="=*forward*"
+    
     ActiveSheet.Range("$A$1:$AH$101").AutoFilter Field:=13, Criteria1:="---"
 End Sub
+Sub ProductChange()
+'
+' ProductChange Macro
+' filter on color
+'
+    FilterOnColor "$A$1:$AH$101", 252, 228, 214, 6
+End Sub
+Sub PriorityChange()
+'
+' PriorityChange Macro
+' filter on color
+'
+    FilterOnColor "$A$1:$AH$101", 204, 153, 255, 8
+End Sub
+Sub TargBuildChange()
+'
+' Target Build Change Macro
+' filter on color
+'
+    FilterOnColor "$A$1:$AH$101", 226, 239, 218, 13
+End Sub
+Sub WaiverChange()
+'
+' WaiverChange Macro
+' filter on color
+'
+    FilterOnColor "$A$1:$AH$101", 255, 229, 255, 12
+End Sub
+Sub FilterOnColor(fltrRng As String, R As Integer, G As Integer, B As Integer, fltrField As Integer)
+    ClearFilters
+    ActiveSheet.Range(fltrRng).AutoFilter Field:=fltrField, Criteria1:=RGB(R, G, B), Operator:=xlFilterCellColor
+End Sub
+Sub uniqueColumn()
+'
+' uniqueColumn Macro
+' uniq
+'
+' Keyboard Shortcut: Ctrl+Shift+T
+'
+    Application.CutCopyMode = False
+    ActiveSheet.Range("$A$1:$A$38").RemoveDuplicates Columns:=1, Header:=xlNo
+End Sub
+Sub OpenBug()
+Attribute OpenBug.VB_Description = "Prompt for bug number to open in bugzilla via firefox"
+Attribute OpenBug.VB_ProcData.VB_Invoke_Func = "B\n14"
+    ' Open single bug in bugzilla via firefox
+    OpenBugCommon "B3", "BZurls", "Bug number to open", "Bug Number"
+End Sub
+Sub OpenBugList()
+Attribute OpenBugList.VB_Description = "Prompt for quoted list of space separated bug numbers to open in summary."
+Attribute OpenBugList.VB_ProcData.VB_Invoke_Func = "b\n14"
+    ' Open a summary list of bugs in bugzilla via firefox
+    OpenBugCommon "B2", "BZurls", "Bug numbers to open quote list and separate by space", "Bug Numbers"
+End Sub
+Sub OpenBugCommon(URLcell As String, DataSht As String, Prompt As String, Title As String)
+    ' msg box to get bug number
+    Dim bugNum As String: bugNum = InputBox(Prompt, Title)
+    ' avoid getting error if no input from prompt
+    If Len(bugNum) < 5 Then Exit Sub
+    bzqueryFunc DataSht, URLcell, bugNum
+End Sub
+Sub trBlocked()
+    trHeadings "A1", "Blocked without target build"
+End Sub
+Sub trReview()
+    trHeadings "A6", """For Review"" > 3 days"
+End Sub
+Sub trPriority()
+    trHeadings "A11", "Priority and Keyword not set > 7days and not ""For Review"""
+End Sub
+Sub trTBnoCRB()
+    trHeadings "A17", "Targeted for current week, not yet in CRB review"
+End Sub
+Sub trTBpastDue()
+    trHeadings "A20", "Past Due Target build"
+End Sub
+Sub trStaleP0()
+    trHeadings "A36", "P0 without update > 14 days"
+End Sub
+Sub trStaleP1()
+    trHeadings "A39", "P1 without update > 14 days"
+End Sub
+Sub trHeadings(Pos As String, Text As String)
+    With Worksheets("Triggered").Range(Pos)
+        .value = Text
+        .Font.Bold = True
+        .Interior.Color = vbYellow
+    End With
+End Sub
+Sub trClearValueFormat()
+    Worksheets("Triggered").Range("22:30").Clear
+End Sub
+Sub runReview()
+    Worksheets("Triggered").Activate
+    Set trigSht = ActiveSheet
+    Worksheets(Range("e1").value).Activate
+    ForReview
+End Sub
+Function getMDstring() As String
+    Dim fromTab As String
+    fromTab = InputBox("M-D of CSV sheet to IMPORT from:", "Input sheet name")
+    fromTab = "bugs-2017-" & fromTab
+    getMDstring = fromTab
+End Function

@@ -1,5 +1,5 @@
 Attribute VB_Name = "Module1"
-Sub copyToTabs()
+Sub copyToTabs(ThisSht As String)
 Attribute copyToTabs.VB_Description = "copy new bug data to filtered sheets"
 Attribute copyToTabs.VB_ProcData.VB_Invoke_Func = " \n14"
 '
@@ -10,9 +10,9 @@ Attribute copyToTabs.VB_ProcData.VB_Invoke_Func = " \n14"
 ' copy from csv sheet to "Latest"
 ' Then sort Latest by product a-z
 '
-    Dim ThisSht As String
-    ThisSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
-    ThisSht = "bugs-2017-" & ThisSht
+'    Dim ThisSht As String
+'    ThisSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
+'    ThisSht = "bugs-2017-" & ThisSht
     
     Sheets("Latest").Select
     ClearFilters
@@ -92,6 +92,7 @@ Sub AVverifyBzQuery()
     Dim browserPath As String
     browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
     Shell (browserPath & bzURL)
+    Copytabfromsheet "Latest", "AvitusNeedsVerifyClose.xlsm"
 End Sub
 Sub pauseUpdates()
     ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
@@ -124,3 +125,24 @@ Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
     enableUpdates
     Range("A2").Select
 End Sub
+Sub Copytabfromsheet(TabToUse As String, wkBookToUse As String)
+'
+' Copytabfromsheet Macro
+' copy
+'
+    Dim dwnldDirPath As String: dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
+        
+    Dim fromTab As String
+    fromTab = InputBox("M-D of FILE to copy from:", "Input file name")
+    fromTab = "bugs-2017-" & fromTab
+    Dim fromSht As String: fromSht = fromTab & ".csv"
+    
+    Workbooks.Open (dwnldDirPath & fromSht)
+    Windows(fromSht).Activate
+    Sheets(fromTab).Select
+    Sheets(fromTab).Move After:=Workbooks(wkBookToUse). _
+        Sheets(TabToUse)
+    Sheets(TabToUse).Select
+    copyToTabs fromTab
+End Sub
+

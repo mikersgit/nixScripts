@@ -1,5 +1,5 @@
 Attribute VB_Name = "Module1"
-Sub AllBugAnalysis()
+Sub AllBugAnalysis(analysisSht As String, fromSht As String)
 Attribute AllBugAnalysis.VB_Description = "Copy all greater/equal normal severity bugs, sort by master bug."
 Attribute AllBugAnalysis.VB_ProcData.VB_Invoke_Func = "A\n14"
 '
@@ -8,30 +8,30 @@ Attribute AllBugAnalysis.VB_ProcData.VB_Invoke_Func = "A\n14"
 '
 ' Keyboard Shortcut: Ctrl+Shift+A
 '
-    Dim fromSht As String
-    fromSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
+'    Dim fromSht As String
+'    fromSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
     Application.Calculation = xlManual
     Range("E2:AJ981").Select
     Selection.ClearContents
     Range("E2").Select
-    Sheets("bugs-2017-" & fromSht).Select
+    Sheets(fromSht).Select
     Range("A2:AF981").Select
     Selection.Copy
-    Sheets("Analysis").Select
+    Sheets(analysisSht).Select
     Range("E2").Select
     ActiveSheet.Paste
     Range("E2").Select
     Application.CutCopyMode = False
     Calculate
     Columns("C:C").Select
-    ActiveWorkbook.Worksheets("Analysis").Sort.SortFields.Clear
-    ActiveWorkbook.Worksheets("Analysis").Sort.SortFields.Add Key:=Range( _
+    ActiveWorkbook.Worksheets(analysisSht).Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets(analysisSht).Sort.SortFields.Add Key:=Range( _
         "C2:C1069"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
         xlSortNormal
-    ActiveWorkbook.Worksheets("Analysis").Sort.SortFields.Add Key:=Range( _
+    ActiveWorkbook.Worksheets(analysisSht).Sort.SortFields.Add Key:=Range( _
         "D2:D1069"), SortOn:=xlSortOnValues, Order:=xlDescending, DataOption:= _
         xlSortNormal
-    With ActiveWorkbook.Worksheets("Analysis").Sort
+    With ActiveWorkbook.Worksheets(analysisSht).Sort
         .SetRange Range("A1:AJ1069")
         .Header = xlYes
         .MatchCase = False
@@ -41,8 +41,8 @@ Attribute AllBugAnalysis.VB_ProcData.VB_Invoke_Func = "A\n14"
     End With
     Application.Calculation = xlAutomatic
     Range("G13").Select
-    LinkBugs "Analysis", "e2:e900"
-    LinkBugs "Analysis", "e2:e900"
+    LinkBugs analysisSht, "e2:e900"
+    LinkBugs analysisSht, "e2:e900"
 End Sub ' AllBugAnalysis
 Sub LinkBugs(shtName As String, lnkRange As String)
     Dim bugNums As Range
@@ -70,22 +70,31 @@ Sub LinkBugs(shtName As String, lnkRange As String)
 End Sub
 Sub AgeNbzquery()
     '
+    ClearFilters
+    Dim analysisSht As String: analysisSht = "Analysis"
     ' open firefox with AllOpenGENormal bz query
     '
     ' bugzilla AuroraProtRedZone query to CSV output
     Dim bzURL As String: bzURL = "http://link.osp.hpe.com/u/24wa"
-    Worksheets("Analysis").Activate
+    Worksheets(analysisSht).Activate
     bzqueryFunc bzURL
-    
+    Dim fromTab As String: fromTab = getMDstring
+    Copytabfromsheet analysisSht, "AllGEnormalBugs.xlsm", fromTab
+    AllBugAnalysis analysisSht, fromTab
 End Sub
 Sub AllResbzquery()
     '
+    ClearFilters
+    Dim analysisSht As String: analysisSht = "Resolved"
     ' open firefox with AllResolvedOneYear bz query
     '
     ' bugzilla AllResolvedOneYear query to CSV output
     Dim bzURL As String: bzURL = "http://link.osp.hpe.com/u/24we"
-    Worksheets("Resolved").Activate
+    Worksheets(analysisSht).Activate
     bzqueryFunc bzURL
+    Dim fromTab As String: fromTab = getMDstring
+    Copytabfromsheet analysisSht, "AllGEnormalBugs.xlsm", fromTab
+    ResolveBugAnalysis analysisSht, fromTab
 End Sub
 Sub ClearFilters()
 '
@@ -118,29 +127,29 @@ Sub bzqueryFunc(bzURL As String)
     browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
     Shell (browserPath & bzURL)
 End Sub
-Sub ResolveBugAnalysis()
+Sub ResolveBugAnalysis(analysisSht As String, fromSht As String)
 '
 ' ResolveBugAnalysis Macro
 ' Analysis of resolved bugs for ODC data
 '
 '
-    Dim fromSht As String
-    fromSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
+'    Dim fromSht As String
+'    fromSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
     Application.Calculation = xlManual
-    Sheets("bugs-2017-" & fromSht).Select
+    Sheets(fromSht).Select
     Range("A1:AD4000").Select
     Selection.Copy
-    Sheets("Resolved").Select
+    Sheets(analysisSht).Select
     Range("E1").Select
     ActiveSheet.Paste
     Calculate
     Columns("C:C").Select
     Application.CutCopyMode = False
-    ActiveWorkbook.Worksheets("Resolved").Sort.SortFields.Clear
-    ActiveWorkbook.Worksheets("Resolved").Sort.SortFields.Add Key:=Range( _
+    ActiveWorkbook.Worksheets(analysisSht).Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets(analysisSht).Sort.SortFields.Add Key:=Range( _
         "C2:C4000"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
         xlSortNormal
-    With ActiveWorkbook.Worksheets("Resolved").Sort
+    With ActiveWorkbook.Worksheets(analysisSht).Sort
         .SetRange Range("C1:AH4000")
         .Header = xlYes
         .MatchCase = False
@@ -152,8 +161,35 @@ Sub ResolveBugAnalysis()
     Application.Calculation = xlAutomatic
     Range("F2").Select
     'link bug column
-    LinkBugs "Resolved", "e2:e4000"
+    LinkBugs analysisSht, "e2:e4000"
     'link master column
     ' =IF(INDIRECT("d"&ROW())=0,IFERROR(VALUE(MID(INDIRECT("g"&ROW()),9,5)),0),INDIRECT("e"&ROW()))
-    LinkBugs "Resolved", "c2:c4000"
+    LinkBugs analysisSht, "c2:c4000"
 End Sub ' ResolvedBugAnalysis
+Sub Copytabfromsheet(TabToUse As String, wkBookToUse As String, fromTab As String)
+'
+' Copytabfromsheet Macro
+' copy
+'
+    Dim dwnldDirPath As String: dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
+        
+    'Dim fromTab As String: fromTab = getMDstring
+'    fromTab = InputBox("M-D of FILE to copy from:", "Input file name")
+'    fromTab = "bugs-2017-" & fromTab
+    Dim fromSht As String: fromSht = fromTab & ".csv"
+    
+    Workbooks.Open (dwnldDirPath & fromSht)
+    Windows(fromSht).Activate
+    Sheets(fromTab).Select
+    Sheets(fromTab).Move After:=Workbooks(wkBookToUse). _
+        Sheets(TabToUse)
+    Sheets(TabToUse).Select
+End Sub
+Function getMDstring() As String
+    Dim fromTab As String
+    fromTab = InputBox("M-D of FILE to copy from:", "Input file name")
+    fromTab = "bugs-2017-" & fromTab
+    getMDstring = fromTab
+End Function
+
+
