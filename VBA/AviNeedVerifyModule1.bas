@@ -65,8 +65,8 @@ Attribute copyToTabs.VB_ProcData.VB_Invoke_Func = " \n14"
     ActiveSheet.Range("$A$1:$AB$600").AutoFilter Field:=6, Criteria1:="=FIXED" _
         , Operator:=xlOr, Criteria2:="=WONTFIX"
     enableUpdates
-    LinkBugs "MacroData!B4", "FixedWontFix", "B2:B300"
-    LinkBugs "MacroData!B4", "!fix!wontFix", "B2:B300"
+    LinkBugs getDataSheet & "!B4", "FixedWontFix", "B2:B300"
+    LinkBugs getDataSheet & "!B4", "!fix!wontFix", "B2:B300"
 End Sub
 Sub ClearFilters()
 '
@@ -85,14 +85,15 @@ Sub AVverifyBzQuery()
 '
 ' open firefox with bz query
     '
+    pauseUpdates
     Dim bzURL As String
     ' bzURL = "https://bugzilla.houston.hpecorp.net:1181/bugzilla/buglist.cgi?cmdtype=runnamed&namedcmd=AuroraAllResolved"
     ' bzURL = "https://bugzilla.houston.hpecorp.net:1181/bugzilla/buglist.cgi?bug_status=RESOLVED&chfield=bug_status&chfieldto=Now&classification=StoreAll%20Classic&classification=Avatar%20based%20FileSystem%2BData%20Services&classification=Protocols&classification=Platform&classification=External&columnlist=bug_id%2Cassigned_to%2Cproduct%2Cresolution%2Ccf_bedrock%2Ccf_foundby%2Cshort_desc%2Cbug_severity%2Ctarget_milestone%2Creporter%2Cstatus_whiteboard%2Cchangeddate%2Cbug_status%2Cversion%2Copendate%2Ccf_alsoseenby%2Ckeywords%2Ccf_probability%2Ccf_defecttype%2Ccomponent%2Cdeadline%2Ccf_redzonereviewflag%2Cpriority%2Ccf_releasenote%2Ccf_odc_opener%2Ccf_odcclosure%2Ccf_required%2Ccf_targetbuild%2Ccf_crb%2Ccf_waivers%2Ccf_cfi_number_text&query_format=advanced&target_milestone=Aurora&ctype=csv&human=1"
-    bzURL = Worksheets("MacroData").Range("A2").Value
-    Dim browserPath As String
-    browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
-    Shell (browserPath & bzURL)
-    Copytabfromsheet "Latest", "AvitusNeedsVerifyClose.xlsm"
+    bzURL = Worksheets(getDataSheet).Range("A2").Value
+    '"C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
+    Shell (getBrowserPath & bzURL)
+    Copytabfromsheet "Latest", getWkBkName
+    enableUpdates
 End Sub
 Sub pauseUpdates()
     ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
@@ -130,11 +131,9 @@ Sub Copytabfromsheet(TabToUse As String, wkBookToUse As String)
 ' Copytabfromsheet Macro
 ' copy
 '
-    Dim dwnldDirPath As String: dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
-        
-    Dim fromTab As String
-    fromTab = InputBox("M-D of FILE to copy from:", "Input file name")
-    fromTab = "bugs-2017-" & fromTab
+    '"C:\Users\mwroberts\AppData\Local\Temp\"
+    Dim dwnldDirPath As String: dwnldDirPath = getTempFolder
+    Dim fromTab As String: fromTab = getMDstring
     Dim fromSht As String: fromSht = fromTab & ".csv"
     
     Workbooks.Open (dwnldDirPath & fromSht)
@@ -145,4 +144,33 @@ Sub Copytabfromsheet(TabToUse As String, wkBookToUse As String)
     Sheets(TabToUse).Select
     copyToTabs fromTab
 End Sub
+Function getMDstring() As String
+    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
+    Dim Yr As String: Yr = Year(Date)
+    
+    Dim prompt As String: prompt = _
+        "Version of " & Mo & "-" & Da & _
+        " CSV FILE from which to COPY [" & Chr(34) & "-1" & Chr(34) & " for example]" _
+        & " CR (no input) for empty version"
+        
+    Dim fromTab As String
+    fromTab = InputBox(prompt, "Input version of file")
+    If InStr(fromTab, "-") <> 1 And Len(fromTab) > 0 Then fromTab = "-" & fromTab
+    fromTab = "bugs-" & Yr & "-" & Mo & "-" & Da & fromTab
+    getMDstring = fromTab
+End Function
+Function getDataSheet() As String
+    getDataSheet = "MacroData"
+End Function
+Function getTempFolder() As String
+    getTempFolder = Environ("temp") & "\"
+End Function
+Function getBrowserPath() As String
+    getBrowserPath = Worksheets(getDataSheet).Range("B10").Value & " "
+End Function
+Function getWkBkName() As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    getWkBkName = fso.GetFileName(ThisWorkbook.FullName)
+End Function
 

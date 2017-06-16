@@ -1,4 +1,79 @@
 Attribute VB_Name = "Module1"
+Sub NoDisposition()
+'
+' NoDisposition Macro
+' No Waiver, and no target, and not "For Review"
+'
+    Dim filterRegion As String: filterRegion = getFilterRegion
+    pauseUpdates
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=12, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=13, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=17, Criteria1:= _
+        "<>For Review", Operator:=xlAnd
+    Columns("L:M").Select: Selection.EntireColumn.Hidden = True
+    Range("a1").Select
+    enableUpdates
+End Sub
+
+Sub Table2Range()
+'
+'
+' Get the name of the table in current sheet, unlink from data source, and then convert to a range
+'
+Dim tbleName As String: tbleName = ActiveSheet.ListObjects(1).Name
+    With ActiveSheet.ListObjects(tbleName)
+        .Unlink
+        .Unlist
+    End With
+    Range("A1").Select
+End Sub
+Sub ClearTable()
+'
+' ClearTable Macro
+' Clear but do not delete
+'
+' Keyboard Shortcut: Ctrl+Shift+T
+'
+    Range("A2:Z100").Select
+    Selection.ClearContents
+    Range("Table_ExternalData_1[[#Headers],[BugId]]").Select
+End Sub
+Sub CopySQLdata()
+'
+' CopySQLdata Macro
+' Copy data from SQL Query
+'
+    Dim NewSht As String: NewSht = NewSheetName()
+    'NewSht = "bugs-2017-" & Mo & "-" & Da
+    
+    Dim ThisSht As String: ThisSht = ActiveSheet.Name
+    Dim SQLdataSht As String: SQLdataSht = getSQLtarget
+    Dim SQLConnectionQuery As String: SQLConnectionQuery = getSQLquery
+    
+    createCopy ThisSht, NewSht, getTriggerSheet
+    
+    Sheets(SQLdataSht).Select
+    ClearTable
+    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
+    
+    Range("A2:F100").Select
+    Selection.Copy
+    Sheets(NewSht).Select
+    Range("D2").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Sheets(SQLdataSht).Select
+    Range("G2:X100").Select
+    Selection.Copy
+    Sheets(NewSht).Select
+    Range("L2").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Range("K1").Select
+    enableUpdates
+    ' Pass in copy FROM sheet as previous sheet
+    FormatScrubSheet ThisSht
+End Sub
 Sub ForReview()
 Attribute ForReview.VB_Description = "Sort on Target Milestone column for 'For Review'"
 Attribute ForReview.VB_ProcData.VB_Invoke_Func = " \n14"
@@ -6,7 +81,7 @@ Attribute ForReview.VB_ProcData.VB_Invoke_Func = " \n14"
 ' ForReview Macro
 ' Sort on Target Milestone column for 'For Review'
 '
-    FilterOnValue "$A$1:$AH$100", "For Review", 17
+    FilterOnValue getFilterRegion, "For Review", 17
     Columns("k:m").Select: Selection.EntireColumn.Hidden = True
 End Sub
 Sub TargettedBuilds()
@@ -16,7 +91,7 @@ Attribute TargettedBuilds.VB_ProcData.VB_Invoke_Func = " \n14"
 ' TargettedBuilds Macro
 ' Filter for Target Builds != '---'
 '
-    FilterOnValue "$A$1:$AH$100", "<>---", 13
+    FilterOnValue getFilterRegion, "<>---", 13
     Columns("i:l").Select: Selection.EntireColumn.Hidden = True
     Columns("i:l").Select: Selection.EntireColumn.Hidden = True
     Columns("q:y").Select: Selection.EntireColumn.Hidden = True
@@ -26,10 +101,10 @@ Sub FilterOnValue(fltrRng As String, fltrStg As String, fltrField As Integer)
     ActiveSheet.Range(fltrRng).AutoFilter Field:=fltrField, Criteria1:=fltrStg
 End Sub
 Sub noPriority()
-    FilterOnValue "$A$1:$AH$100", "unsp*", 8
+    FilterOnValue getFilterRegion, "unsp*", 8
 End Sub
 Sub blocked()
-    FilterOnValue "$A$1:$AH$100", "block*", 20
+    FilterOnValue getFilterRegion, "block*", 20
 End Sub
 Sub InPlay()
 Attribute InPlay.VB_Description = "Bugs, not waived, not doc, not targetted, not 'For Review'"
@@ -38,20 +113,21 @@ Attribute InPlay.VB_ProcData.VB_Invoke_Func = " \n14"
 ' InPlay Macro
 ' Bugs, not waived, not doc, not targetted, not 'For Review'
 '
+    Dim filterRegion As String: filterRegion = getFilterRegion
     ClearFilters
     ' 6 is F "Product" not equal to Documentation
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=6, Criteria1:= _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=6, Criteria1:= _
         "<>*Document*", Operator:=xlAnd
     ' 7 is G "Component" not equal to Documentation
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=7, Criteria1:= _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=7, Criteria1:= _
         "<>*Document*", Operator:=xlAnd
     ' 12 is L "Waivers" equal to dashes which means not set
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=12, Criteria1:="=---", _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=12, Criteria1:="=---", _
         Operator:=xlOr, Criteria2:="="
     ' 13 is M "Target build" equal to dashes which means not set
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=13, Criteria1:="=---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=13, Criteria1:="=---"
     ' 17 is Q "Target Milestone" equal to Avitus, also need to check for PPI*
-    ActiveSheet.Range("$A$1:$AH$100").AutoFilter Field:=17, Criteria1:="Avitus", _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=17, Criteria1:=getRelName, _
         Operator:=xlOr, Criteria2:="PP*"
     Columns("k:m").Select: Selection.EntireColumn.Hidden = True
     Columns("g:g").Select: Selection.EntireColumn.Hidden = True
@@ -63,7 +139,7 @@ Attribute Waivers.VB_ProcData.VB_Invoke_Func = " \n14"
 ' Waivers Macro
 ' bugs with waivers requested
 '
-    FilterOnValue "$A$1:$AH$100", "Waiver Requested", 12
+    FilterOnValue getFilterRegion, "Waiver Requested", 12
     Columns("j:k").Select: Selection.EntireColumn.Hidden = True
     Columns("M:M").Select: Selection.EntireColumn.Hidden = True
     Columns("G:G").Select: Selection.EntireColumn.Hidden = True
@@ -88,7 +164,7 @@ Sub P0bugs()
 ' Filter for 'P0' bugs
 '
     ' 8 is H "priority"
-    FilterOnValue "$A$1:$AH$100", "P0", 8
+    FilterOnValue getFilterRegion, "P0", 8
 End Sub
 Sub FormatScrubSheet(PrevSht As String)
 '
@@ -114,8 +190,6 @@ Sub FormatScrubSheet(PrevSht As String)
     ' sort the product column alphabetically
     AvProductSort ThisSht, "F2:F100"
     
-    Range("k1").Select
-    Range("n111").Select
 ' Hyperlinks Macro
 ' Insert top/bottom links
 '
@@ -180,6 +254,21 @@ Sub fillBlanks(NotesStart As String, NotesEnd As String)
     Range(NotesStart & ":" & NotesEnd).Select
     Range(NotesStart).Select
 End Sub
+Sub createCopy(fromSht As String, toSht As String, afterSht As String)
+    pauseUpdates
+    ' make sure the copy from sheet is the active sheet
+    ClearFilters
+    Sheets(fromSht).Select
+    
+    ' rename new sheet
+    '
+    Sheets(fromSht).Copy after:=Sheets(afterSht)
+    Sheets(fromSht & " (2)").Select
+    Sheets(fromSht & " (2)").Name = toSht
+    ' make new sheet the active sheet so call to Format operates on the correct sheet
+    ' NewSht = "bugs-2017-" & NewSht
+    Sheets(toSht).Select
+End Sub
 Sub CopySheet()
 '
 ' CopySheet Macro
@@ -192,30 +281,14 @@ Sub CopySheet()
     '
     ' Dim NewSht As String
     ' NewSht = InputBox("M-D of NEW sheet to copy TO:", "Input sheet name")
-    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
-    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
-    Dim NewSht As String: NewSht = "bugs-2017-" & Mo & "-" & Da
+    Dim NewSht As String: NewSht = NewSheetName()
+    'NewSht = "bugs-2017-" & Mo & "-" & Da
     
     Dim ThisSht As String: ThisSht = ActiveSheet.Name
     ' Most of the time the "from" sheet has been the sheet where we select the copy button
     ' so simplifying by just putting the current sheet directly in the variable
-'    Dim ThisSht As String
-'    ThisSht = InputBox("M-D of sheet to copy from:", "Input sheet name")
-'    ThisSht = "bugs-2017-" & ThisSht
 
-    pauseUpdates
-    ' make sure the copy from sheet is the active sheet
-    ClearFilters
-    Sheets(ThisSht).Select
-    
-    ' rename new sheet
-    '
-    Sheets(ThisSht).Copy before:=Sheets(1)
-    Sheets(ThisSht & " (2)").Select
-    Sheets(ThisSht & " (2)").Name = NewSht
-    ' make new sheet the active sheet so call to Format operates on the correct sheet
-    ' NewSht = "bugs-2017-" & NewSht
-    Sheets(NewSht).Select
+    createCopy ThisSht, NewSht, getTriggerSheet
     
     ' open firefox with bz query
     '
@@ -229,6 +302,14 @@ Sub CopySheet()
     FormatScrubSheet ThisSht
     
 End Sub
+Function NewSheetName() As String
+    ' NewSht = InputBox("M-D of NEW sheet to copy TO:", "Input sheet name")
+    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
+    Dim Yr As String: Yr = Year(Date)
+    Dim NewSht As String: NewSht = "bugs-" & Yr & "-" & Mo & "-" & Da
+    NewSheetName = NewSht
+End Function
 Sub AvBzQuery()
     ' open firefox with bz query
     '
@@ -236,7 +317,7 @@ Sub AvBzQuery()
     Dim URLcell As String
     URLcell = "K3"
     
-    bzqueryFunc "Data", URLcell
+    bzqueryFunc getDataSheet, URLcell
 End Sub
 Sub AvRefreshData()
     Dim ThisSht As String: ThisSht = ActiveSheet.Name
@@ -256,10 +337,12 @@ Sub AvimportInfo()
 ' importInfo Macro
 ' Get csv data from downloaded bz query
 '
-    Dim dwnldDirPath As String: dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
+    ' "C:\Users\mwroberts\AppData\Local\Temp\"
+    'dwnldDirPath = Worksheets(getBZSheet).Range("B5").value
+    Dim dwnldDirPath As String: dwnldDirPath = getTempFolder
     Dim csvFullPath As String
     
-    Dim ScrubSheet As String: ScrubSheet = "Scrub_Avitus_RZ_bugs.xlsm"
+    Dim ScrubSheet As String: ScrubSheet = getWkBkName
     
     Dim ImportSht As String: ImportSht = getMDstring & ".csv"
 
@@ -323,8 +406,8 @@ End Sub
 Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     ' expect a cell range with cell that contains URL to be passed in
     Dim bzURL As String:  bzURL = Worksheets(DataSht).Range(URLcell).value
-    Dim browserPath As String: browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
-    Shell (browserPath & bzURL & value)
+    'C:\Program Files (x86)\Mozilla Firefox\firefox.exe & " "
+    Shell (getBrowserPath & bzURL & value)
 End Sub
 Sub DefValueForBlank(editRng As String, shtName As String)
     Dim Fields As Range
@@ -362,39 +445,40 @@ Attribute regressionFilter.VB_ProcData.VB_Invoke_Func = " \n14"
 ' regression Macro
 ' regress or forward port
 '
+    Dim filterRegion As String: filterRegion = getFilterRegion
     ClearFilters
-    ActiveSheet.Range("$A$1:$AH$101").AutoFilter Field:=9, Criteria1:= _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=9, Criteria1:= _
         "=*regress*", Operator:=xlOr, Criteria2:="=*forward*"
     
-    ActiveSheet.Range("$A$1:$AH$101").AutoFilter Field:=13, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=13, Criteria1:="---"
 End Sub
 Sub ProductChange()
 '
 ' ProductChange Macro
 ' filter on color
 '
-    FilterOnColor "$A$1:$AH$101", 252, 228, 214, 6
+    FilterOnColor getFilterRegion, 252, 228, 214, 6
 End Sub
 Sub PriorityChange()
 '
 ' PriorityChange Macro
 ' filter on color
 '
-    FilterOnColor "$A$1:$AH$101", 204, 153, 255, 8
+    FilterOnColor getFilterRegion, 204, 153, 255, 8
 End Sub
 Sub TargBuildChange()
 '
 ' Target Build Change Macro
 ' filter on color
 '
-    FilterOnColor "$A$1:$AH$101", 226, 239, 218, 13
+    FilterOnColor getFilterRegion, 226, 239, 218, 13
 End Sub
 Sub WaiverChange()
 '
 ' WaiverChange Macro
 ' filter on color
 '
-    FilterOnColor "$A$1:$AH$101", 255, 229, 255, 12
+    FilterOnColor getFilterRegion, 255, 229, 255, 12
 End Sub
 Sub FilterOnColor(fltrRng As String, R As Integer, G As Integer, B As Integer, fltrField As Integer)
     ClearFilters
@@ -414,17 +498,17 @@ Sub OpenBug()
 Attribute OpenBug.VB_Description = "Prompt for bug number to open in bugzilla via firefox"
 Attribute OpenBug.VB_ProcData.VB_Invoke_Func = "B\n14"
     ' Open single bug in bugzilla via firefox
-    OpenBugCommon "B3", "BZurls", "Bug number to open", "Bug Number"
+    OpenBugCommon "B3", getBZSheet, "Bug number to open", "Bug Number"
 End Sub
 Sub OpenBugList()
 Attribute OpenBugList.VB_Description = "Prompt for quoted list of space separated bug numbers to open in summary."
 Attribute OpenBugList.VB_ProcData.VB_Invoke_Func = "b\n14"
     ' Open a summary list of bugs in bugzilla via firefox
-    OpenBugCommon "B2", "BZurls", "Bug numbers to open quote list and separate by space", "Bug Numbers"
+    OpenBugCommon "B2", getBZSheet, "Bug numbers to open quote list and separate by space", "Bug Numbers"
 End Sub
-Sub OpenBugCommon(URLcell As String, DataSht As String, Prompt As String, Title As String)
+Sub OpenBugCommon(URLcell As String, DataSht As String, prompt As String, Title As String)
     ' msg box to get bug number
-    Dim bugNum As String: bugNum = InputBox(Prompt, Title)
+    Dim bugNum As String: bugNum = InputBox(prompt, Title)
     ' avoid getting error if no input from prompt
     If Len(bugNum) < 5 Then Exit Sub
     bzqueryFunc DataSht, URLcell, bugNum
@@ -451,24 +535,65 @@ Sub trStaleP1()
     trHeadings "A39", "P1 without update > 14 days"
 End Sub
 Sub trHeadings(Pos As String, Text As String)
-    With Worksheets("Triggered").Range(Pos)
+    With Worksheets(getTriggerSheet).Range(Pos)
         .value = Text
         .Font.Bold = True
         .Interior.Color = vbYellow
     End With
 End Sub
 Sub trClearValueFormat()
-    Worksheets("Triggered").Range("22:30").Clear
+    Worksheets(getTriggerSheet).Range("22:30").Clear
 End Sub
 Sub runReview()
-    Worksheets("Triggered").Activate
+    Worksheets(getTriggerSheet).Activate
     Set trigSht = ActiveSheet
     Worksheets(Range("e1").value).Activate
     ForReview
 End Sub
 Function getMDstring() As String
+    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
+    Dim Yr As String: Yr = Year(Date)
+    
+    Dim prompt As String: prompt = _
+        "Version of " & Mo & "-" & Da & _
+        " CSV sheet from which to IMPORT [" & Chr(34) & "-1" & Chr(34) & " for example]" _
+        & " CR (no input) for empty version"
+        
     Dim fromTab As String
-    fromTab = InputBox("M-D of CSV sheet to IMPORT from:", "Input sheet name")
-    fromTab = "bugs-2017-" & fromTab
+    fromTab = InputBox(prompt, "Input version of sheet")
+    If InStr(fromTab, "-") <> 1 And Len(fromTab) > 0 Then fromTab = "-" & fromTab
+    fromTab = "bugs-" & Yr & "-" & Mo & "-" & Da & fromTab
     getMDstring = fromTab
+End Function
+Function getSQLtarget() As String
+    getSQLtarget = Worksheets(getDataSheet).Range("K10").value
+End Function
+Function getSQLquery() As String
+    getSQLquery = Worksheets(getDataSheet).Range("K9").value
+End Function
+Function getDataSheet() As String
+    getDataSheet = "Data"
+End Function
+Function getBZSheet() As String
+    getBZSheet = "BZurls"
+End Function
+Function getTriggerSheet() As String
+    getTriggerSheet = "Triggered"
+End Function
+Function getRelName() As String
+    getRelName = Worksheets(getDataSheet).Range("K12").value
+End Function
+Function getWkBkName() As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    getWkBkName = fso.GetFileName(ThisWorkbook.FullName)
+End Function
+Function getTempFolder() As String
+    getTempFolder = Environ("temp") & "\"
+End Function
+Function getFilterRegion() As String
+    getFilterRegion = Worksheets(getDataSheet).Range("K13").value
+End Function
+Function getBrowserPath() As String
+    getBrowserPath = Worksheets(getBZSheet).Range("B6").value & " "
 End Function

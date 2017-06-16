@@ -1,4 +1,14 @@
 Attribute VB_Name = "Module1"
+Sub smbFAA()
+'
+' smbFAA Macro
+' SMB and FAA product filter
+'
+' Keyboard Shortcut: Ctrl+Shift+T
+'
+    ActiveSheet.Range(getFilterRegion).AutoFilter Field:=19, Criteria1:= _
+        "=File Access Auditing", Operator:=xlOr, Criteria2:="=Protocols-SMB"
+End Sub
 Sub ClearFilters()
 '
 ' ClearFilters Macro
@@ -9,6 +19,15 @@ Sub ClearFilters()
     If ActiveSheet.FilterMode Then ActiveSheet.ShowAllData
     ' Go To cell D18 after processing
     Range("A1").Select
+    UnHideColumns
+End Sub
+Sub UnHideColumns()
+'
+' UnHideColumns Macro
+' Unhide columns
+'
+    Columns("A:AH").Select: Selection.EntireColumn.Hidden = False
+    Range("E2").Select
 End Sub
 Sub Targeted()
 '
@@ -18,7 +37,7 @@ Sub Targeted()
 ' Keyboard Shortcut: Ctrl+Shift+T
 '
     ActiveWindow.LargeScroll ToRight:=1
-    ActiveSheet.Range("$A$17:$AH$98").AutoFilter Field:=26, Criteria1:="<>---" _
+    ActiveSheet.Range(getFilterRegion).AutoFilter Field:=26, Criteria1:="<>---" _
         , Operator:=xlAnd
     ' Go To cell D18 after processing
     Range("D18").Select
@@ -30,15 +49,16 @@ Sub UntargRZ()
 '
 ' Keyboard Shortcut: Ctrl+Shift+U
 '
-    ActiveSheet.Range("$A$17:$AH$98").AutoFilter Field:=20, Criteria1:=Array( _
+    Dim filterRegion As String: filterRegion = getFilterRegion
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=20, Criteria1:=Array( _
         "*Unknown (Triage)-AAUM", "*Unknown (Triage)-NFS", "*Unknown (Triage)-SMB", _
         "Authentication-AAUM", "Config Restore", "Install/Upgrade-AAUM", "Install/Upgrade-SMB", _
         "Manageability-AAUM", "Manageability-NFS", "Manageability-SMB", "Other-SMB", _
         "Server-NFS", "Server-SMB", "User Mapping-AAUM", "Server-AAUM", "Cross-Protocols-SMB", _
         "="), Operator:=xlFilterValues
-    ActiveSheet.Range("$A$17:$AH$98").AutoFilter Field:=26, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=26, Criteria1:="---"
     ActiveWindow.LargeScroll ToRight:=1
-    ActiveSheet.Range("$A$17:$AH$98").AutoFilter Field:=31, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=31, Criteria1:="---"
     
     ' Go To cell D18 after processing
     Range("D18").Select
@@ -50,7 +70,7 @@ Sub Newest()
 '
 ' Keyboard Shortcut: Ctrl+Shift+N
 '
-    ActiveSheet.Range("$A$17:$AH$98").AutoFilter Field:=2, Criteria1:=Array("0" _
+    ActiveSheet.Range(getFilterRegion).AutoFilter Field:=2, Criteria1:=Array("0" _
         , "1", "2", "3", "4", "5", "6"), Operator:=xlFilterValues
     ' Go To cell D18 after processing
     Range("D18").Select
@@ -122,7 +142,7 @@ Sub RzFormat(shtName As String, BzRange As String, LowBzCell As String, HighBzCe
 '        .TintAndShade = 0
 '    End With
 
-    LinkBugs "BZurls!B3", shtName, BzRange
+    LinkBugs getBZSheet & "!B3", shtName, BzRange
     ' Go To cell D18 after processing
     Range(BzRange).Select
     ' Change font to black
@@ -142,8 +162,7 @@ Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
     
     Set bugNums = Worksheets(shtName).Range(lnkRange)
     ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlManual
+    pauseUpdates
     For Each bug In bugNums
         strlen = Len(bug.value)
         If strlen <= 6 And strlen > 0 And bug.value <> 0 Then
@@ -153,21 +172,20 @@ Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
         End If
     Next bug
     ' Turn screen update and calculation back on
-    Application.Calculation = xlAutomatic
-    Application.ScreenUpdating = True
+    enableUpdates
     Range("A2").Select
 End Sub
 Sub OpenBug()
     ' Open single bug in bugzilla via firefox
-    OpenBugCommon "B3", "BZurls", "Bug number to open", "Bug Number"
+    OpenBugCommon "B3", getBZSheet, "Bug number to open", "Bug Number"
 End Sub
 Sub OpenBugList()
     ' Open a summary list of bugs in bugzilla via firefox
-    OpenBugCommon "B4", "BZurls", "Bug numbers to open quote list and separate by space", "Bug Numbers"
+    OpenBugCommon "B4", getBZSheet, "Bug numbers to open quote list and separate by space", "Bug Numbers"
 End Sub
-Sub OpenBugCommon(URLcell As String, DataSht As String, Prompt As String, Title As String)
+Sub OpenBugCommon(URLcell As String, DataSht As String, prompt As String, Title As String)
     ' msg box to get bug number
-    Dim bugNum As String: bugNum = InputBox(Prompt, Title)
+    Dim bugNum As String: bugNum = InputBox(prompt, Title)
     ' avoid getting error if no input from prompt
     If Len(bugNum) < 5 Then Exit Sub
     bzqueryFunc DataSht, URLcell, bugNum
@@ -181,7 +199,7 @@ Sub rzbzquery()
     ' bugzilla AuroraProtRedZone query to CSV output
     ' bzURL = "http://link.osp.hpe.com/u/24wb"
     Worksheets(ThisSht).Activate
-    bzqueryFunc "BZurls", URLcell
+    bzqueryFunc getBZSheet, URLcell
     rzimportInfo
     RedZoneStatusSetup
     
@@ -195,7 +213,7 @@ Sub AVrzbzquery()
     ' bugzilla AvitusProtRedZone query to CSV output
     ' bzURL = "http://link.osp.hpe.com/u/268u"
     Worksheets(ThisSht).Activate
-    bzqueryFunc "BZurls", URLcell
+    bzqueryFunc getBZSheet, URLcell
     rzimportInfo
     RedZoneAvitusSetup
     
@@ -203,7 +221,8 @@ End Sub
 Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     ' expect a cell range with cell that contains URL to be passed in
     Dim bzURL As String:  bzURL = Worksheets(DataSht).Range(URLcell).value
-    Dim browserPath As String: browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
+    '"C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
+    Dim browserPath As String: browserPath = Worksheets(getBZSheet).Range("B7").value & " "
     Shell (browserPath & bzURL & value)
 End Sub
 
@@ -213,16 +232,25 @@ Sub rzimportInfo()
 ' Get csv data from downloaded bz query
 '
     ClearFilters
-    Dim dwnldDirPath As String
-    dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
+    '"C:\Users\mwroberts\AppData\Local\Temp\"
+    'dwnldDirPath = Worksheets("BZurls").Range("B6").value
+    Dim dwnldDirPath As String: dwnldDirPath = getTempFolder
     Dim csvFullPath As String
     
-    Dim ScrubSheet As String
-    ScrubSheet = "RedZoneStatus.xlsm"
+    Dim ScrubSheet As String: ScrubSheet = getWkBkName
+    
+    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
+    Dim Yr As String: Yr = Year(Date)
     
     Dim ImportSht As String
-    ImportSht = InputBox("M-D of CSV sheet to IMPORT from:", "Input sheet name")
-    ImportSht = "bugs-2017-" & ImportSht & ".csv"
+    Dim prompt As String: prompt = _
+        "Version of " & Mo & "-" & Da & _
+        " CSV sheet from which to IMPORT [" & Chr(34) & "-1" & Chr(34) & " for example]" _
+        & " CR (no input) for empty version"
+    ImportSht = InputBox(prompt, "Input version")
+    If InStr(ImportSht, "-") <> 1 And Len(ImportSht) > 0 Then ImportSht = "-" & ImportSht
+    ImportSht = "bugs-" & Yr & "-" & Mo & "-" & Da & ImportSht & ".csv"
 
     ' wait 5 seconds
     'Application.Wait (Now + TimeValue("0:00:05"))
@@ -230,16 +258,40 @@ Sub rzimportInfo()
    ' open csv FILE and activate the worksheet, then copy the contents in two sections
    ' into the scrub worksheet
    '
+   ' Skip the first row, do not want to overwrite calculations put in the column headings.
     csvFullPath = dwnldDirPath & ImportSht
     Workbooks.Open (csvFullPath)
     Windows(ImportSht).Activate
     ActiveWindow.Zoom = 42
-    Range("A1:AF98").Select
+    Range("A2:AF98").Select
     Selection.Copy
     
     ' switch to scrub worksheet and paste a-f
     Windows(ScrubSheet).Activate
-    Range("c17").Select
+    Range("c18").Select
     ActiveSheet.Paste
-    Range("c17").Select
+    Range("c18").Select
 End Sub
+Sub pauseUpdates()
+    ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlManual
+End Sub
+Sub enableUpdates()
+   ' Turn screen update and calculation back on
+    Application.Calculation = xlAutomatic
+    Application.ScreenUpdating = True
+End Sub
+Function getBZSheet() As String
+    getBZSheet = "BZurls"
+End Function
+Function getWkBkName() As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    getWkBkName = fso.GetFileName(ThisWorkbook.FullName)
+End Function
+Function getTempFolder() As String
+    getTempFolder = Environ("temp") & "\"
+End Function
+Function getFilterRegion() As String
+    getFilterRegion = Worksheets(getBZSheet).Range("E6").value
+End Function

@@ -8,8 +8,8 @@ Sub ClearFilters()
     Range("A1").Select
 End Sub
 Sub LaunchBZ(URL As String)
-    Dim browserPath As String: browserPath = "C:\Program Files (x86)\Mozilla Firefox\firefox.exe "
-    Shell (browserPath & URL)
+    'C:\Program Files (x86)\Mozilla Firefox\firefox.exe & " "
+    Shell (getBrowserPath & URL)
 End Sub
 Sub bzqueryFunc(URLcell As String, SheetWURL As String)
     ' expect a cell range with cell that contains URL to be passed in
@@ -26,11 +26,10 @@ Sub CloneCSVquery()
     cbImport
 End Sub
 Sub cbImport()
-    Dim ScrubSheet As String: ScrubSheet = "CloneBugsCalc.xlsm"
-    Dim CutRange As String: CutRange = "A2:H11"
+    Dim CutRange As String: CutRange = "A2:N11"
     Dim PasteRange As String: PasteRange = "H2"
     
-    CloneImportInfo ScrubSheet, CutRange, PasteRange
+    CloneImportInfo getWkBkName, CutRange, PasteRange
 End Sub
 Sub SpecificBugsQuery()
     ' build URL for bug ID or comma separated list of IDS that is in the format to prepare for cloning
@@ -81,13 +80,12 @@ Sub CloneImportInfo(ScrubSheet As String, CutRange As String, PasteRange As Stri
 '
     Windows(ScrubSheet).Activate
     ClearFilters
-    Dim dwnldDirPath As String: dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
+    'Dim dwnldDirPath As String: dwnldDirPath = "C:\Users\mwroberts\AppData\Local\Temp\"
+    Dim dwnldDirPath As String: dwnldDirPath = getTempFolder
     Dim csvFullPath As String
     
-    Dim ImportSht As String
-    ImportSht = InputBox("M-D of CSV sheet to IMPORT from:", "Input sheet name")
-    ImportSht = "bugs-2017-" & ImportSht & ".csv"
-
+    Dim ImportSht As String: ImportSht = getMDstring & ".csv"
+    
    ' open csv FILE and activate the worksheet, then copy the contents in two sections
    ' into the scrub worksheet
    '
@@ -104,3 +102,41 @@ Sub CloneImportInfo(ScrubSheet As String, CutRange As String, PasteRange As Stri
     ActiveSheet.Paste
     Range(PasteRange).Select
 End Sub
+Function getMDstring() As String
+    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
+    Dim Yr As String: Yr = Year(Date)
+    
+    Dim prompt As String: prompt = _
+        "Version of " & Mo & "-" & Da & _
+        " CSV sheet from which to IMPORT [" & Chr(34) & "-1" & Chr(34) & " for example]" _
+        & " CR (no input) for empty version"
+        
+    Dim fromTab As String
+    fromTab = InputBox(prompt, "Input version of sheet")
+    If InStr(fromTab, "-") <> 1 And Len(fromTab) > 0 Then fromTab = "-" & fromTab
+    fromTab = "bugs-" & Yr & "-" & Mo & "-" & Da & fromTab
+    getMDstring = fromTab
+End Function
+Function getDataSheet() As String
+    getDataSheet = "VBAdata"
+End Function
+Function getBrowserPath() As String
+    getBrowserPath = Worksheets(getDataSheet).Range("B2").Value & " "
+End Function
+Function getTempFolder() As String
+    getTempFolder = Environ("temp") & "\"
+End Function
+Function getWkBkName() As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    getWkBkName = fso.GetFileName(ThisWorkbook.FullName)
+End Function
+Sub activeCellValue()
+Attribute activeCellValue.VB_Description = "prepend letter m to bugs that have had master created"
+Attribute activeCellValue.VB_ProcData.VB_Invoke_Func = "m\n14"
+   Dim tmpstr As String: tmpstr = ActiveCell.Value
+   ActiveCell.Value = "m" & tmpstr
+End Sub
+ 
+    
+    

@@ -79,6 +79,18 @@ Private Sub Workbook_Open()
       .OnAction = "noPriority"
       .Style = msoButtonCaption
    End With
+    Set objBtn = objPopUp.Controls.Add
+   With objBtn
+      .Caption = "Blocked"
+      .OnAction = "blocked"
+      .Style = msoButtonCaption
+   End With
+   Set objBtn = objPopUp.Controls.Add
+   With objBtn
+      .Caption = "No Disposition"
+      .OnAction = "NoDisposition"
+      .Style = msoButtonCaption
+   End With
    '
    ' view macros
    '
