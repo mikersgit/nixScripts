@@ -1,183 +1,243 @@
 Attribute VB_Name = "Module1"
+'**************
+'** Globals definitions
+'**************
+    '*******
+    '** constants
+    '*******
+'    Public Const rngSt As String = "2"    ' start row for vdu bug scrub sheet
+'    Public Const rngEd As String = "100"  ' end row for vdu bug scrub sheet
+'    Public Const urngSt As String = "2"   ' start row for udu bug scrub sheet
+'    Public Const urngEd As String = "30"  ' end row for udu bug scrub sheet
+    '*********
+    '** variables
+    '*********
+    '******************* ranges *********************
+    Public rngSt As String    ' start row for vdu bug scrub sheet
+    Public rngEd As String    ' end row for vdu bug scrub sheet
+    Public urngSt As String    ' start row for udu bug scrub sheet
+    Public urngEd As String   ' end row for udu bug scrub sheet
+    '******************* columns **************************
+    Public colsSet As Boolean ' set this when all columns have been set.
+    Public waiveCol As Integer
+    Public tarBldCol As Integer
+    Public tarMilCol As Integer
+    Public prodCol As Integer
+    Public compCol As Integer
+    Public severCol As Integer
+    Public statusCol As Integer
+    Public prioCol As Integer
+    Public keywCol As Integer
+    Public noteCol As Integer
+    Public bugCol As Integer
+    Public bugColLtr As String
+    Public prodColLtr As String
+    Public noteColLtr As String
+    '**************** filter
+    Public filterRegion As String
+    Public Mo As String
+    Public DA As String
+    Public Yr As String
+    Public YMDstr As String
+    '************ end of global definitions (not initialized yet) **************************
+Private Sub Auto_Open()
+    'automatically initialize the columns using the latest worksheet, when the workbook is opened
+    Sheets(2).Activate ' use the second tab as the sheet from which to grab the column names and locations
+    setColNumbers ' set the column numbers to be used in filters. Do it once at startup to improve performance
+    filterRegion = getFilterRegion ' get the size of the full sheet size from the "Data" sheet in the workbook
+    setDataRange ' get the size of the data region from the "Data" sheet
+    setUDUDataRange ' get the size of the UDU sheets data region from the "Data" sheet
+    setYMDstr       ' set the year-month-day string that is used several times
+    prodColLtr = getColLtr(prodCol) ' now that the column number of filter is known, determine the column letter for range calls
+    noteColLtr = getColLtr(noteCol)
+    bugColLtr = getColLtr(bugCol)
+    'MsgBox CStr(filterRegion)
+End Sub
+'*****************************************
+'** Subroutines that initialize globals on open
+'*****************************************
+Sub setColNumbers()
+    colsSet = False
+    UnHideColumns
+    Dim t As Variant: t = setColNum()
+End Sub
+Sub setDataRange()
+    rngSt = Worksheets(getDataSheet).Range("k15").value
+    rngEd = Worksheets(getDataSheet).Range("k16").value
+End Sub
+Sub setUDUDataRange()
+    urngSt = Worksheets(getDataSheet).Range("k18").value
+    urngEd = Worksheets(getDataSheet).Range("k19").value
+End Sub
+Sub setYMDstr()
+    Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
+    DA = Day(Date): If Len(DA) = 1 Then DA = "0" & DA
+    Yr = Year(Date)
+    YMDstr = Yr & "-" & Mo & "-" & DA
+End Sub
+'**************************** End of initialization section ***********************
+'*****************************************
+'** Subroutines that filter bugs displayed
+'*****************************************
 Sub NoDisposition()
 '
 ' NoDisposition Macro
 ' No Waiver, and no target, and not "For Review"
 '
-    Dim filterRegion As String: filterRegion = getFilterRegion
+    'Dim filterRegion As String: filterRegion = getFilterRegion
     pauseUpdates
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=12, Criteria1:="---"
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=13, Criteria1:="---"
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=17, Criteria1:= _
+    ClearFilters
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=waiveCol, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=tarBldCol, Criteria1:="---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=tarMilCol, Criteria1:= _
         "<>For Review", Operator:=xlAnd
-    Columns("L:M").Select: Selection.EntireColumn.Hidden = True
-    Range("a1").Select
+    hideColumnRng ("L:M")
+    Range("a2").Select
     enableUpdates
-End Sub
-
-Sub Table2Range()
+End Sub ' end NoDisposition
+Sub Reopened()
 '
+' Sort on Status column (30) for 'REOPENED'
 '
-' Get the name of the table in current sheet, unlink from data source, and then convert to a range
-'
-Dim tbleName As String: tbleName = ActiveSheet.ListObjects(1).Name
-    With ActiveSheet.ListObjects(tbleName)
-        .Unlink
-        .Unlist
-    End With
-    Range("A1").Select
-End Sub
-Sub ClearTable()
-'
-' ClearTable Macro
-' Clear but do not delete
-'
-' Keyboard Shortcut: Ctrl+Shift+T
-'
-    Range("A2:Z100").Select
-    Selection.ClearContents
-    Range("Table_ExternalData_1[[#Headers],[BugId]]").Select
-End Sub
-Sub CopySQLdata()
-'
-' CopySQLdata Macro
-' Copy data from SQL Query
-'
-    Dim NewSht As String: NewSht = NewSheetName()
-    'NewSht = "bugs-2017-" & Mo & "-" & Da
-    
-    Dim ThisSht As String: ThisSht = ActiveSheet.Name
-    Dim SQLdataSht As String: SQLdataSht = getSQLtarget
-    Dim SQLConnectionQuery As String: SQLConnectionQuery = getSQLquery
-    
-    createCopy ThisSht, NewSht, getTriggerSheet
-    
-    Sheets(SQLdataSht).Select
-    ClearTable
-    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
-    
-    Range("A2:F100").Select
-    Selection.Copy
-    Sheets(NewSht).Select
-    Range("D2").Select
-    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
-        :=False, Transpose:=False
-    Sheets(SQLdataSht).Select
-    Range("G2:X100").Select
-    Selection.Copy
-    Sheets(NewSht).Select
-    Range("L2").Select
-    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
-        :=False, Transpose:=False
-    Range("K1").Select
-    enableUpdates
-    ' Pass in copy FROM sheet as previous sheet
-    FormatScrubSheet ThisSht
+    FilterOnValue filterRegion, "REOPENED", statusCol
+    hideColumnRng ("o:ac")
+    Range("a2").Select
 End Sub
 Sub ForReview()
-Attribute ForReview.VB_Description = "Sort on Target Milestone column for 'For Review'"
-Attribute ForReview.VB_ProcData.VB_Invoke_Func = " \n14"
 '
 ' ForReview Macro
-' Sort on Target Milestone column for 'For Review'
+' Sort on Target Milestone column (17) for 'For Review'
 '
-    FilterOnValue getFilterRegion, "For Review", 17
-    Columns("k:m").Select: Selection.EntireColumn.Hidden = True
+    FilterOnValue filterRegion, "For Review", tarMilCol
+    hideColumnRng ("k:m")
 End Sub
 Sub TargettedBuilds()
-Attribute TargettedBuilds.VB_Description = "Filter for Target Builds != '---'"
-Attribute TargettedBuilds.VB_ProcData.VB_Invoke_Func = " \n14"
 '
 ' TargettedBuilds Macro
-' Filter for Target Builds != '---'
+' Filter for Target Builds(13) != '---'
 '
-    FilterOnValue getFilterRegion, "<>---", 13
-    Columns("i:l").Select: Selection.EntireColumn.Hidden = True
-    Columns("i:l").Select: Selection.EntireColumn.Hidden = True
-    Columns("q:y").Select: Selection.EntireColumn.Hidden = True
-End Sub
-Sub FilterOnValue(fltrRng As String, fltrStg As String, fltrField As Integer)
-    ClearFilters
-    ActiveSheet.Range(fltrRng).AutoFilter Field:=fltrField, Criteria1:=fltrStg
-End Sub
+    FilterOnValue filterRegion, "<>---", tarBldCol
+    hideColumnRng ("i:l")
+    hideColumnRng ("i:l")
+    hideColumnRng ("q:y")
+End Sub ' end TargettedBuilds
 Sub noPriority()
-    FilterOnValue getFilterRegion, "unsp*", 8
+    FilterOnValue filterRegion, "unsp*", prioCol
 End Sub
 Sub blocked()
-    FilterOnValue getFilterRegion, "block*", 20
+    FilterOnValue filterRegion, "block*", severCol
 End Sub
 Sub InPlay()
-Attribute InPlay.VB_Description = "Bugs, not waived, not doc, not targetted, not 'For Review'"
-Attribute InPlay.VB_ProcData.VB_Invoke_Func = " \n14"
 '
 ' InPlay Macro
 ' Bugs, not waived, not doc, not targetted, not 'For Review'
 '
-    Dim filterRegion As String: filterRegion = getFilterRegion
+    'Dim filterRegion As String: filterRegion = getFilterRegion
     ClearFilters
-    ' 6 is F "Product" not equal to Documentation
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=6, Criteria1:= _
+    ' 6 is F "Product" not equal to Documentation (use '*' because count is appended in column header)
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=prodCol, Criteria1:= _
         "<>*Document*", Operator:=xlAnd
     ' 7 is G "Component" not equal to Documentation
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=7, Criteria1:= _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=compCol, Criteria1:= _
         "<>*Document*", Operator:=xlAnd
     ' 12 is L "Waivers" equal to dashes which means not set
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=12, Criteria1:="=---", _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=waiveCol, Criteria1:="=---", _
         Operator:=xlOr, Criteria2:="="
     ' 13 is M "Target build" equal to dashes which means not set
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=13, Criteria1:="=---"
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=tarBldCol, Criteria1:="=---"
     ' 17 is Q "Target Milestone" equal to Avitus, also need to check for PPI*
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=17, Criteria1:=getRelName, _
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=tarMilCol, Criteria1:=getRelName, _
         Operator:=xlOr, Criteria2:="PP*"
-    Columns("k:m").Select: Selection.EntireColumn.Hidden = True
-    Columns("g:g").Select: Selection.EntireColumn.Hidden = True
-End Sub
+    hideColumnRng ("k:m")
+    hideColumnRng ("g:g")
+End Sub ' end InPlay
 Sub Waivers()
-Attribute Waivers.VB_Description = "bugs with waivers requested"
-Attribute Waivers.VB_ProcData.VB_Invoke_Func = " \n14"
 '
 ' Waivers Macro
 ' bugs with waivers requested
 '
-    FilterOnValue getFilterRegion, "Waiver Requested", 12
-    Columns("j:k").Select: Selection.EntireColumn.Hidden = True
-    Columns("M:M").Select: Selection.EntireColumn.Hidden = True
-    Columns("G:G").Select: Selection.EntireColumn.Hidden = True
-End Sub
-Sub ClearFilters()
-Attribute ClearFilters.VB_ProcData.VB_Invoke_Func = " \n14"
-'
-' ClearFilters Macro
-' Clear column filters
-'
-' The "If" prevents the error when clearning when no filters are set
-'
-    If ActiveSheet.FilterMode Then ActiveSheet.ShowAllData
-    ' Go To cell D18 after processing
-    UnHideColumns
-    Columns("D:D").Select: Selection.EntireColumn.Hidden = True
-    Range("A1").Select
-End Sub
+    ClearFilters
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=waiveCol, Criteria1:= _
+        "=Waiver Requested", Operator:=xlOr, Criteria2:="=Director*"
+    hideColumnRng ("j:k")
+    hideColumnRng ("M:M")
+    hideColumnRng ("G:G")
+End Sub ' end Waivers
 Sub P0bugs()
 '
 ' P0bugs Macro
 ' Filter for 'P0' bugs
 '
     ' 8 is H "priority"
-    FilterOnValue getFilterRegion, "P0", 8
+    FilterOnValue filterRegion, "P0", prioCol
 End Sub
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' Common filter routine that takes a range and filter value
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Sub FilterOnValue(fltrRng As String, fltrStg As String, fltrField As Integer)
+    ClearFilters
+    pauseUpdates
+    ActiveSheet.Range(fltrRng).AutoFilter Field:=fltrField, Criteria1:=fltrStg
+    enableUpdates
+End Sub
+Sub regressionFilter()
+'
+' regression Macro
+' regress or forward port
+'
+    ClearFilters
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=keywCol, Criteria1:= _
+        "=*regress*", Operator:=xlOr, Criteria2:="=*forward*"
+    
+    ActiveSheet.Range(filterRegion).AutoFilter Field:=tarBldCol, Criteria1:="---"
+End Sub 'end regressionFilter
+Sub ProductChange()
+'
+' ProductChange Macro
+' filter on color
+'
+    FilterOnColor filterRegion, 252, 228, 214, prodCol
+End Sub
+Sub PriorityChange()
+'
+' PriorityChange Macro
+' filter on color
+'
+    FilterOnColor filterRegion, 204, 153, 255, prioCol
+End Sub
+Sub TargBuildChange()
+'
+' Target Build Change Macro
+' filter on color
+'
+    FilterOnColor filterRegion, 226, 239, 218, tarBldCol
+End Sub
+Sub WaiverChange()
+'
+' WaiverChange Macro
+' filter on color
+'
+    FilterOnColor filterRegion, 255, 229, 255, waiveCol
+End Sub
+''''''''''''''''''''''''''''''''''''''''''''
+' common routine to filter a colomn by color
+''''''''''''''''''''''''''''''''''''''''''''
+Sub FilterOnColor(fltrRng As String, R As Integer, G As Integer, B As Integer, fltrField As Integer)
+    ClearFilters
+    ActiveSheet.Range(fltrRng).AutoFilter Field:=fltrField, Criteria1:=RGB(R, G, B), Operator:=xlFilterCellColor
+End Sub
+'**************************** End of filter section ***********************
+'**************************************************************************
+'************************************************
+'** Subroutines that format, sort the spreadsheet
+'************************************************
 Sub FormatScrubSheet(PrevSht As String)
 '
 ' FormatScrubSheet Macro
 ' Do the sort, and setup the top/bottom links
 '
     ClearFilters
-    Dim ThisSht As String: ThisSht = ActiveSheet.Name
-    
-    ' simplified by passing the "copy from" sheet as the compare against sheet
-'    Dim PrevSht As String
-'    PrevSht = InputBox("M-D of sheet to compare against:", "Input sheet name")
-'    PrevSht = "bugs-2017-" & PrevSht
+    Dim ThisSht As String: ThisSht = ActiveSheet.name
     
     pauseUpdates
 ' insertText Macro
@@ -188,14 +248,14 @@ Sub FormatScrubSheet(PrevSht As String)
     ActiveCell.FormulaR1C1 = PrevSht
     
     ' sort the product column alphabetically
-    AvProductSort ThisSht, "F2:F100"
+    AvProductSort ThisSht, getRngStr(prodColLtr, prodColLtr, rngSt, rngEd)
     
 ' Hyperlinks Macro
 ' Insert top/bottom links
 '
     Range("k1").Select
     ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
-        "'" & ThisSht & "'" & "!K118", TextToDisplay:="Prev Notes"
+        "'" & ThisSht & "'" & "!K140", TextToDisplay:="Prev Notes"
     Range("k1").Select
     Selection.Hyperlinks(1).Follow NewWindow:=False, AddHistory:=True
     Range("n111").Select
@@ -217,17 +277,17 @@ Sub FormatScrubSheet(PrevSht As String)
     Application.CutCopyMode = False
     
     ' fill "notes" column with "."
-    fillBlanks "J2", "J100"
-    
+    fillBlanks noteColLtr & rngSt, getRngStr(noteColLtr, noteColLtr, rngSt, rngEd)
+
+    UnHideColumns ' Make columns visible before looking-up column letters
+    Dim colNm() As Variant: colNm = Array("Keywords", "CFI", "status synop*", "whiteboard", "Affected Tar*")
+    multiRangeBlank colNm(), rngSt, rngEd, ThisSht
+
     enableUpdates
-    ' Fill I, O, P with "." if blank (Keyword, CFI, Status synopsis)
-    DefValueForBlank "I2:I100", ThisSht
-    DefValueForBlank "O2:O100", ThisSht
-    DefValueForBlank "P2:P100", ThisSht
     
     ' hide column "D" that has non-linked bug ID
-    Columns("D:D").Select: Selection.EntireColumn.Hidden = True
-End Sub
+    hideColumnRng (getRngStr(bugColLtr, bugColLtr))
+End Sub ' end FormatScrubSheet
 Sub AvProductSort(Sheet As String, SrtRange As String)
     ActiveWorkbook.Worksheets(Sheet).AutoFilter.Sort.SortFields.Clear
     ActiveWorkbook.Worksheets(Sheet).AutoFilter.Sort.SortFields.Add _
@@ -241,8 +301,8 @@ Sub AvProductSort(Sheet As String, SrtRange As String)
         .Apply
     End With
 
-End Sub
-Sub fillBlanks(NotesStart As String, NotesEnd As String)
+End Sub ' end AvProductSort
+Sub fillBlanks(NotesStart As String, NotesRng As String)
 '
 ' fillBlanks Macro
 ' Fill empty cells with dot
@@ -250,10 +310,189 @@ Sub fillBlanks(NotesStart As String, NotesEnd As String)
     ' the current notes column
     Range(NotesStart).Select
     ActiveCell.FormulaR1C1 = "."
-    Selection.AutoFill Destination:=Range(NotesStart & ":" & NotesEnd), Type:=xlFillDefault
-    Range(NotesStart & ":" & NotesEnd).Select
+    Selection.AutoFill Destination:=Range(NotesStart & ":" & NotesRng), Type:=xlFillDefault
+    Range(NotesRng).Select
     Range(NotesStart).Select
+End Sub ' end fillBlanks
+Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
+    ' example call LinkBugs getBZSheet & "!B3", "3parRedZone", "c2:c30"
+    Dim bugNums As Range
+    Dim bug As Range
+    ' BZ query screen pre-pended to bug number to create link to bug in bugzilla
+    Dim bzStr As String: bzStr = bzLnkLoc
+    Dim bugStr As String
+    Dim strlen As Integer
+    
+    Set bugNums = Worksheets(shtName).Range(lnkRange)
+    ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
+    pauseUpdates
+    For Each bug In bugNums
+        strlen = Len(bug.value)
+        If strlen <= 6 And strlen > 0 And bug.value <> 0 Then
+            bugStr = "=Hyperlink(" & bzStr
+            bugStr = bugStr & " & " & bug.value & "," & bug.value & ")"
+            bug.value = bugStr
+        End If
+    Next bug
+    ' Turn screen update and calculation back on
+    enableUpdates
+    Range("A2").Select
+End Sub ' end LinkBugs
+Sub multiRangeBlank(col As Variant, rstart As String, rend As String, sht As String)
+    ' Call the DefValueForBlank routine in a loop over multiple columns
+    Dim c As Variant
+    Dim cn As String
+    Dim rng As String
+    For Each c In col
+        cn = getColLtr(getColNu(CStr(c)))
+        rng = getRngStr(cn, cn, rstart, rend)
+        DefValueForBlank rng, sht
+    Next c
 End Sub
+Sub DefValueForBlank(editRng As String, shtName As String)
+    ' put a character in blank cells so that cut/paste into email doesn't get distorted when cells are empty
+    Dim Fields As Range
+    Dim Field As Range
+    Dim FieldStr As String: FieldStr = "."
+    Dim strlen As Integer
+    
+    Set Fields = Worksheets(shtName).Range(editRng)
+    ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
+    pauseUpdates
+    For Each Field In Fields
+        strlen = Len(Field.value)
+        If strlen < 1 Then
+            Field.value = FieldStr
+        End If
+    Next Field
+    ' Turn screen update and calculation back on
+    enableUpdates
+    Range("A2").Select
+End Sub ' end DefValueForBlank
+'******************** End of formating sorting routines ********************
+'***************************************************************************
+
+'*******************************************
+'** Subroutines that control general display
+'*******************************************
+Sub hideColumnRng(rng As String)
+    Columns(rng).Select: Selection.EntireColumn.Hidden = True
+End Sub
+Sub hideColumnName(colName As String)
+    Dim cn As String: cn = getColLtr(getColNu(colName))
+    hideColumnRng (getRngStr(cn, cn))
+End Sub
+Sub ClearTable()
+'
+' ClearTable Macro
+' Clear but do not delete
+'
+' Keyboard Shortcut: Ctrl+Shift+T
+'
+    Range(getRngStr("A", "Z", rngSt, rngEd)).Select
+    Selection.ClearContents
+    Range("Table_ExternalData_1[[#Headers],[BugId]]").Select
+End Sub 'end ClearTable
+Sub ClearFilters()
+'
+' ClearFilters Macro
+' Clear column filters
+'
+' The "If" prevents the error when clearning when no filters are set
+'
+    pauseUpdates
+    If ActiveSheet.FilterMode Then ActiveSheet.ShowAllData
+    ' Go To cell D18 after processing
+    UnHideColumns
+    hideColumnRng (getRngStr(bugColLtr, bugColLtr))
+    Range("A1").Select
+    enableUpdates
+End Sub 'ClearFilters
+Sub HideColumns()
+'
+' HideColumns Macro
+' Hide Columns to show previous values
+'
+    'hideColumnRng ("G:G") ' component
+    hideColumnName ("component")
+    'hideColumnRng ("I:I") ' keywords
+    hideColumnName ("keywords")
+    'hideColumnRng ("L:L") ' waivers
+    hideColumnName ("waivers")
+    hideColumnRng ("N:S")
+    hideColumnRng ("U:Z")
+    ActiveWindow.ScrollColumn = 1
+    Range("E2").Select
+End Sub 'end HideColumns
+Sub UnHideColumns()
+'
+' UnHideColumns Macro
+' Unhide columns
+'
+    Columns("A:AI").Select: Selection.EntireColumn.Hidden = False
+    Range("E2").Select
+End Sub
+Sub pauseUpdates()
+    ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlManual
+End Sub
+Sub enableUpdates()
+   ' Turn screen update and calculation back on
+    Application.Calculation = xlAutomatic
+    Application.ScreenUpdating = True
+End Sub
+'************** End of general display section ****************************
+'**************************************************************************
+'*********************************************
+'** Pull data from external sources and import
+'*********************************************
+Sub CopySQLdata()
+'
+' CopySQLdata Macro
+' Copy data from SQL Query
+'
+    Dim NewSht As String: NewSht = NewSheetName()
+    'NewSht = "bugs-2017-" & Mo & "-" & Da
+    
+    Dim ThisSht As String: ThisSht = ActiveSheet.name
+    Dim SQLdataSht As String: SQLdataSht = getSQLtarget
+    Dim SQLConnectionQuery As String: SQLConnectionQuery = getSQLquery
+    
+    createCopy ThisSht, NewSht, getTriggerSheet
+    
+    Sheets(SQLdataSht).Select
+    ClearTable
+    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
+    
+    Range(getRngStr("A", "F", rngSt, rngEd)).Select
+    Selection.Copy
+    Sheets(NewSht).Select
+    Range("D2").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+        
+    Sheets(SQLdataSht).Select
+    Range(getRngStr("G", "X", rngSt, rngEd)).Select
+    Selection.Copy
+    Sheets(NewSht).Select
+    Range("L2").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+        
+    Sheets(SQLdataSht).Select
+    Range(getRngStr("Z", "Z", rngSt, rngEd)).Select
+    Selection.Copy
+    Sheets(NewSht).Select
+    Range("AD2").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    
+    Range("K1").Select
+    enableUpdates
+    ' Pass in copy FROM sheet as previous sheet
+    FormatScrubSheet ThisSht
+End Sub ' end CopySQLdata
 Sub createCopy(fromSht As String, toSht As String, afterSht As String)
     pauseUpdates
     ' make sure the copy from sheet is the active sheet
@@ -264,11 +503,11 @@ Sub createCopy(fromSht As String, toSht As String, afterSht As String)
     '
     Sheets(fromSht).Copy after:=Sheets(afterSht)
     Sheets(fromSht & " (2)").Select
-    Sheets(fromSht & " (2)").Name = toSht
+    Sheets(fromSht & " (2)").name = toSht
     ' make new sheet the active sheet so call to Format operates on the correct sheet
     ' NewSht = "bugs-2017-" & NewSht
     Sheets(toSht).Select
-End Sub
+End Sub ' end createCopy
 Sub CopySheet()
 '
 ' CopySheet Macro
@@ -284,7 +523,7 @@ Sub CopySheet()
     Dim NewSht As String: NewSht = NewSheetName()
     'NewSht = "bugs-2017-" & Mo & "-" & Da
     
-    Dim ThisSht As String: ThisSht = ActiveSheet.Name
+    Dim ThisSht As String: ThisSht = ActiveSheet.name
     ' Most of the time the "from" sheet has been the sheet where we select the copy button
     ' so simplifying by just putting the current sheet directly in the variable
 
@@ -301,15 +540,7 @@ Sub CopySheet()
     ' format sheet
     FormatScrubSheet ThisSht
     
-End Sub
-Function NewSheetName() As String
-    ' NewSht = InputBox("M-D of NEW sheet to copy TO:", "Input sheet name")
-    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
-    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
-    Dim Yr As String: Yr = Year(Date)
-    Dim NewSht As String: NewSht = "bugs-" & Yr & "-" & Mo & "-" & Da
-    NewSheetName = NewSht
-End Function
+End Sub 'end CopySheet
 Sub AvBzQuery()
     ' open firefox with bz query
     '
@@ -320,18 +551,18 @@ Sub AvBzQuery()
     bzqueryFunc getDataSheet, URLcell
 End Sub
 Sub AvRefreshData()
-    Dim ThisSht As String: ThisSht = ActiveSheet.Name
+    Dim ThisSht As String: ThisSht = ActiveSheet.name
+
     ' new data in the current sheet
     AvBzQuery
     AvimportInfo
-    AvProductSort ThisSht, "F2:F100"
-    
-    ' Fill I, O, P with "." if blank (Keyword, CFI, Status synopsis)
-    DefValueForBlank "I2:I100", ThisSht
-    DefValueForBlank "O2:O100", ThisSht
-    DefValueForBlank "P2:P100", ThisSht
-    DefValueForBlank "J2:J100", ThisSht ' on refresh do not wipe out the notes column, just fill new blanks
-End Sub
+    AvProductSort ThisSht, getRngStr(prodColLtr, prodColLtr, rngSt, rngEd)
+    UnHideColumns ' Make columns visible before looking-up column letters
+    Dim colNm() As Variant: colNm = Array("Keywords", "CFI", "Status Syn*", "*notes", "whiteboard")
+    multiRangeBlank colNm(), rngSt, rngEd, ThisSht
+
+End Sub ' end AvRefreshData
+
 Sub AvimportInfo()
 '
 ' importInfo Macro
@@ -357,7 +588,7 @@ Sub AvimportInfo()
     Windows(ImportSht).Activate
     Set CSVFile = ActiveWorkbook
     ActiveWindow.Zoom = 42
-    Range("A2:F100").Select
+    Range(getRngStr("A", "F", rngSt, rngEd)).Select
     Selection.Copy
     
     ' switch to scrub worksheet and paste a-f
@@ -367,7 +598,7 @@ Sub AvimportInfo()
     
     ' back to csv for next section
     Windows(ImportSht).Activate
-    Range("G2:Y100").Select
+    Range(getRngStr("G", "Y", rngSt, rngEd)).Select
     Application.CutCopyMode = False
     Selection.Copy
     
@@ -381,119 +612,16 @@ Sub AvimportInfo()
     Selection.Copy
     
     CSVFile.Close SaveChanges:=False
-End Sub
-Sub HideColumns()
-'
-' HideColumns Macro
-' Hide Columns to show previous values
-'
-    Columns("G:G").Select: Selection.EntireColumn.Hidden = True
-    Columns("I:I").Select: Selection.EntireColumn.Hidden = True
-    Columns("L:L").Select: Selection.EntireColumn.Hidden = True
-    Columns("N:S").Select: Selection.EntireColumn.Hidden = True
-    Columns("U:Z").Select: Selection.EntireColumn.Hidden = True
-    ActiveWindow.ScrollColumn = 1
-    Range("E2").Select
-End Sub
-Sub UnHideColumns()
-'
-' UnHideColumns Macro
-' Unhide columns
-'
-    Columns("A:AH").Select: Selection.EntireColumn.Hidden = False
-    Range("E2").Select
-End Sub
+End Sub ' end AvimportInfo
 Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     ' expect a cell range with cell that contains URL to be passed in
     Dim bzURL As String:  bzURL = Worksheets(DataSht).Range(URLcell).value
     'C:\Program Files (x86)\Mozilla Firefox\firefox.exe & " "
     Shell (getBrowserPath & bzURL & value)
 End Sub
-Sub DefValueForBlank(editRng As String, shtName As String)
-    Dim Fields As Range
-    Dim Field As Range
-    Dim FieldStr As String: FieldStr = "."
-    Dim strlen As Integer
-    
-    Set Fields = Worksheets(shtName).Range(editRng)
-    ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
-    pauseUpdates
-    For Each Field In Fields
-        strlen = Len(Field.value)
-        If strlen < 1 Then
-            Field.value = FieldStr
-        End If
-    Next Field
-    ' Turn screen update and calculation back on
-    enableUpdates
-    Range("A2").Select
-End Sub
-Sub pauseUpdates()
-    ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
-    Application.ScreenUpdating = False
-    Application.Calculation = xlManual
-End Sub
-Sub enableUpdates()
-   ' Turn screen update and calculation back on
-    Application.Calculation = xlAutomatic
-    Application.ScreenUpdating = True
-End Sub
-Sub regressionFilter()
-Attribute regressionFilter.VB_Description = "regress or forward port"
-Attribute regressionFilter.VB_ProcData.VB_Invoke_Func = " \n14"
-'
-' regression Macro
-' regress or forward port
-'
-    Dim filterRegion As String: filterRegion = getFilterRegion
-    ClearFilters
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=9, Criteria1:= _
-        "=*regress*", Operator:=xlOr, Criteria2:="=*forward*"
-    
-    ActiveSheet.Range(filterRegion).AutoFilter Field:=13, Criteria1:="---"
-End Sub
-Sub ProductChange()
-'
-' ProductChange Macro
-' filter on color
-'
-    FilterOnColor getFilterRegion, 252, 228, 214, 6
-End Sub
-Sub PriorityChange()
-'
-' PriorityChange Macro
-' filter on color
-'
-    FilterOnColor getFilterRegion, 204, 153, 255, 8
-End Sub
-Sub TargBuildChange()
-'
-' Target Build Change Macro
-' filter on color
-'
-    FilterOnColor getFilterRegion, 226, 239, 218, 13
-End Sub
-Sub WaiverChange()
-'
-' WaiverChange Macro
-' filter on color
-'
-    FilterOnColor getFilterRegion, 255, 229, 255, 12
-End Sub
-Sub FilterOnColor(fltrRng As String, R As Integer, G As Integer, B As Integer, fltrField As Integer)
-    ClearFilters
-    ActiveSheet.Range(fltrRng).AutoFilter Field:=fltrField, Criteria1:=RGB(R, G, B), Operator:=xlFilterCellColor
-End Sub
-Sub uniqueColumn()
-'
-' uniqueColumn Macro
-' uniq
-'
-' Keyboard Shortcut: Ctrl+Shift+T
-'
-    Application.CutCopyMode = False
-    ActiveSheet.Range("$A$1:$A$38").RemoveDuplicates Columns:=1, Header:=xlNo
-End Sub
+'**************************************
+'** trigger sheet routines
+'**************************************
 Sub OpenBug()
 Attribute OpenBug.VB_Description = "Prompt for bug number to open in bugzilla via firefox"
 Attribute OpenBug.VB_ProcData.VB_Invoke_Func = "B\n14"
@@ -550,22 +678,188 @@ Sub runReview()
     Worksheets(Range("e1").value).Activate
     ForReview
 End Sub
-Function getMDstring() As String
-    Dim Mo As String: Mo = Month(Date): If Len(Mo) = 1 Then Mo = "0" & Mo
-    Dim Da As String: Da = Day(Date): If Len(Da) = 1 Then Da = "0" & Da
-    Dim Yr As String: Yr = Year(Date)
+'************** end trigger sheet routines ****************
+'**********************************************************
+'*******************************************
+'** 3par (UDU) bug query and format routines
+'*******************************************
+Sub UDUData()
+    ' pull data from UDU instance of bugzilla
+    ' make sure 3parRedZone is active sheet
+    Worksheets("3parRedzone").Activate
+    UDUBzQuery
+    UDUimport
+    UDUformat
+End Sub
+Sub UDUBzQuery()
+    ' open firefox with bz query
+    '
+    ' Cell with direct CSV link
+    Dim URLcell As String
+    URLcell = "B8"
     
+    bzqueryFunc getBZSheet, URLcell
+End Sub
+Sub UDUimport()
+'
+' importInfo Macro
+' Get csv data from downloaded bz query
+'
+    ' "C:\Users\mwroberts\AppData\Local\Temp\"
+    'dwnldDirPath = Worksheets(getBZSheet).Range("B5").value
+    Dim dwnldDirPath As String: dwnldDirPath = getTempFolder
+    Dim csvFullPath As String
+    
+    Dim ScrubSheet As String: ScrubSheet = getWkBkName
+    
+    Dim ImportSht As String: ImportSht = getMDstring & ".csv"
+
+    pauseUpdates
+   ' open csv FILE and activate the worksheet, then copy the contents
+   ' into the scrub worksheet
+   '
+    csvFullPath = dwnldDirPath & ImportSht
+    Workbooks.Open (csvFullPath)
+    Windows(ImportSht).Activate
+    Set CSVFile = ActiveWorkbook
+    ActiveWindow.Zoom = 42
+    Range("A2:F30").Select
+    Selection.Copy
+    
+    ' switch to scrub worksheet and paste
+    Windows(ScrubSheet).Activate
+    Range("C2").Select
+    ActiveSheet.Paste
+    
+    ' back to csv for next section
+    Windows(ImportSht).Activate
+    Range("G2:T30").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    
+    ' and copy to scrub worksheet
+    Windows(ScrubSheet).Activate
+    Range("J2").Select
+    ActiveSheet.Paste
+    
+    ' this next "copy" is just to prevent the "large clipboard" warning pop-up when the csv file is closed.
+    Range("D2").Select
+    Application.CutCopyMode = False
+    Selection.Copy
+    
+    CSVFile.Close SaveChanges:=False
+    enableUpdates
+End Sub ' end UDUimport
+Sub UDUformat()
+    ' make sure 3parRedZone is active sheet
+    Worksheets("3parRedzone").Activate
+    Dim ThisSht As String: ThisSht = ActiveSheet.name
+
+    LinkBugs getBZSheet & "!B9", "3parRedZone", getRngStr(bugColLtr, bugColLtr, urngSt, urngEd)
+    UnHideColumns ' Make columns visible before looking-up column letters
+    Dim colNm() As Variant: colNm = Array("Keywords", "deadline", "gr8*", "*notes", "whiteboard", "developer*")
+    multiRangeBlank colNm(), urngSt, urngEd, ThisSht
+   
+    pauseUpdates
+    ' get today's date, then copy/paste into a cell, that way it doesn't change until data is refreshed
+    Range("f38").Select
+    ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
+        "'" & NewSheetName & "'" & "!A2", TextToDisplay:="VDU Bugs"
+    Range("F39").Select
+    ActiveCell.FormulaR1C1 = "=TODAY()"
+    Range("F39").Select
+    Selection.Copy
+    Range("F40").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Application.CutCopyMode = False
+    enableUpdates
+End Sub ' end UDUformat
+'************** End 3par (UDU) bug query and format routines ***************
+'***************************************************************************
+'***********************
+'** Future use routines
+'***********************
+Sub AskColumnNumber()
+    Dim cname As String
+    Dim cnumber As Integer
+    Set wksht = ActiveSheet
+    cname = InputBox("column name", "input cname")
+    MsgBox (cnumber)
+End Sub
+Sub AskColumnLetter()
+    Dim cname As String
+    Dim cnumber As Integer
+    cnumber = InputBox("column num", "input cnumber")
+    cname = getColLtr(cnumber)
+    MsgBox (cname)
+End Sub
+Sub AskMultipleNumber()
+    Dim name As Variant
+    Dim names() As Variant: names = Array("waivers", "assign*")
+    For Each name In names
+        If Len(CStr(name)) > 0 Then
+            MsgBox (CStr(name))
+            MsgBox (getColNu(CStr(name)))
+        End If
+    Next name
+    
+End Sub
+Sub Table2Range()
+'
+'
+' Get the name of the table in current sheet, unlink from data source, and then convert to a range
+'
+Dim tbleName As String: tbleName = ActiveSheet.ListObjects(1).name
+    With ActiveSheet.ListObjects(tbleName)
+        .Unlink
+        .Unlist
+    End With
+    Range("A1").Select
+End Sub ' end Table2Range
+Sub uniqueColumn()
+'
+' uniqueColumn Macro
+' uniq
+'
+' Keyboard Shortcut: Ctrl+Shift+T
+'
+    Application.CutCopyMode = False
+    ActiveSheet.Range("$A$1:$A$38").RemoveDuplicates Columns:=1, Header:=xlNo
+End Sub ' end uniqueColumn
+Sub callGetRng()
+    Dim str As String: str = getRngStr("a", "a")
+    str = getRngStr("A", "b", "2", "100")
+End Sub
+Function setRng()
+    If Len(rngSt) < 1 Then
+        rngSt = "2"
+        rngEd = "100"
+    End If
+End Function
+'*********** end of future use routines ****************
+'*******************************************************
+'********************
+'** Functions Section
+'********************
+Function NewSheetName() As String
+    ' NewSht = InputBox("M-D of NEW sheet to copy TO:", "Input sheet name")
+    Dim NewSht As String: NewSht = "bugs-" & YMDstr
+    NewSheetName = NewSht
+End Function ' end NewSheetName
+Function getMDstring() As String
+
     Dim prompt As String: prompt = _
-        "Version of " & Mo & "-" & Da & _
+        "Version of " & Mo & "-" & DA & _
         " CSV sheet from which to IMPORT [" & Chr(34) & "-1" & Chr(34) & " for example]" _
         & " CR (no input) for empty version"
         
     Dim fromTab As String
     fromTab = InputBox(prompt, "Input version of sheet")
     If InStr(fromTab, "-") <> 1 And Len(fromTab) > 0 Then fromTab = "-" & fromTab
-    fromTab = "bugs-" & Yr & "-" & Mo & "-" & Da & fromTab
+    fromTab = "bugs-" & YMDstr & fromTab
     getMDstring = fromTab
-End Function
+End Function ' end getMDstring
 Function getSQLtarget() As String
     getSQLtarget = Worksheets(getDataSheet).Range("K10").value
 End Function
@@ -596,4 +890,50 @@ Function getFilterRegion() As String
 End Function
 Function getBrowserPath() As String
     getBrowserPath = Worksheets(getBZSheet).Range("B6").value & " "
+End Function
+Function getColNu(TextToFind As String) As Integer
+    ' from column header, determine column number
+    Dim rng1 As Range
+    pauseUpdates
+    Rows("1:1").Select
+    
+    Set rng1 = ActiveSheet.UsedRange.Find(TextToFind, , xlValues, xlWhole)
+    If Not rng1 Is Nothing Then
+        getColNu = rng1.Column
+    Else
+        getColNu = -1
+        Rem MsgBox "Not found", vbCritical
+    End If
+    enableUpdates
+End Function ' end getColNu
+Function getColLtr(lngCol As Integer) As String
+    'From the column number determine the column letter
+    Dim vArr
+    vArr = Split(Cells(1, lngCol).Address(True, False), "$")
+    getColLtr = vArr(0)
+End Function
+Function getRngStr(startLtr As String, endLtr As String, Optional startNu As String, Optional endNu As String) As String
+    If Len(startNu) > 0 Then
+        getRngStr = startLtr & startNu & ":" & endLtr & endNu
+    Else
+        getRngStr = startLtr & ":" & endLtr
+    End If
+End Function
+Function setColNum()
+    'set column numbers once per session
+    If colsSet <> True Then
+     bugCol = getColNu("Bug ID")
+     waiveCol = getColNu("Waivers")
+     tarBldCol = getColNu("target build")
+     tarMilCol = getColNu("target milestone")
+     prodCol = getColNu("product*")
+     compCol = getColNu("component")
+     severCol = getColNu("severity")
+     statusCol = getColNu("status")
+     prioCol = getColNu("priority")
+     keywCol = getColNu("keywords")
+     noteCol = getColNu("*notes")
+     colsSet = True
+    End If
+    Range("a1").Select
 End Function
