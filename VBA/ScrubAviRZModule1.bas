@@ -1,4 +1,16 @@
 Attribute VB_Name = "Module1"
+'*********** Sections **********
+' 1. Globals
+' 2. Initialize
+' 3. Filter Bugs
+' 4. format, sort
+' 5. Begin To Be Verified (TBV) analysis
+' 6. control general display
+' 7. Pull data from external sources
+' 8. trigger sheet
+' 9. 3par (UDU) bug
+' 10. Functions Section
+
 '**************
 '** Globals definitions
 '**************
@@ -17,8 +29,10 @@ Attribute VB_Name = "Module1"
     Public rngEd As String    ' end row for vdu bug scrub sheet
     Public urngSt As String    ' start row for udu bug scrub sheet
     Public urngEd As String   ' end row for udu bug scrub sheet
+    Public NextRow As Integer ' row index to use when populating Trigger sheet
     '******************* columns **************************
     Public colsSet As Boolean ' set this when all columns have been set.
+    Public colsWrite As Boolean ' set this when the current column defs have been written to sheet
     Public waiveCol As Integer
     Public tarBldCol As Integer
     Public tarMilCol As Integer
@@ -26,10 +40,12 @@ Attribute VB_Name = "Module1"
     Public compCol As Integer
     Public severCol As Integer
     Public statusCol As Integer
+    Public statusSynCol As Integer
     Public prioCol As Integer
     Public keywCol As Integer
     Public noteCol As Integer
     Public bugCol As Integer
+    Public verCol As Integer
     Public bugColLtr As String
     Public prodColLtr As String
     Public noteColLtr As String
@@ -51,6 +67,7 @@ Private Sub Auto_Open()
     prodColLtr = getColLtr(prodCol) ' now that the column number of filter is known, determine the column letter for range calls
     noteColLtr = getColLtr(noteCol)
     bugColLtr = getColLtr(bugCol)
+    NextRow = 0
     'MsgBox CStr(filterRegion)
 End Sub
 '*****************************************
@@ -75,6 +92,10 @@ Sub setYMDstr()
     Yr = Year(Date)
     YMDstr = Yr & "-" & Mo & "-" & DA
 End Sub
+Sub CallInitRountine()
+    ' use this in debugging to get globals re-initialized
+    Auto_Open
+End Sub
 '**************************** End of initialization section ***********************
 '*****************************************
 '** Subroutines that filter bugs displayed
@@ -85,14 +106,14 @@ Sub NoDisposition()
 ' No Waiver, and no target, and not "For Review"
 '
     'Dim filterRegion As String: filterRegion = getFilterRegion
-    pauseUpdates
     ClearFilters
+    pauseUpdates
     ActiveSheet.Range(filterRegion).AutoFilter Field:=waiveCol, Criteria1:="---"
     ActiveSheet.Range(filterRegion).AutoFilter Field:=tarBldCol, Criteria1:="---"
     ActiveSheet.Range(filterRegion).AutoFilter Field:=tarMilCol, Criteria1:= _
         "<>For Review", Operator:=xlAnd
     hideColumnRng ("L:M")
-    Range("a2").Select
+    scrollTop
     enableUpdates
 End Sub ' end NoDisposition
 Sub Reopened()
@@ -101,7 +122,7 @@ Sub Reopened()
 '
     FilterOnValue filterRegion, "REOPENED", statusCol
     hideColumnRng ("o:ac")
-    Range("a2").Select
+    scrollTop
 End Sub
 Sub ForReview()
 '
@@ -283,6 +304,7 @@ Sub FormatScrubSheet(PrevSht As String)
     Dim colNm() As Variant: colNm = Array("Keywords", "CFI", "status synop*", "whiteboard", "Affected Tar*")
     multiRangeBlank colNm(), rngSt, rngEd, ThisSht
 
+    uniqTargBld ' put unique list of target builds in the product column starting at row 152
     enableUpdates
     
     ' hide column "D" that has non-linked bug ID
@@ -336,7 +358,7 @@ Sub LinkBugs(bzLnkLoc As String, shtName As String, lnkRange As String)
     Next bug
     ' Turn screen update and calculation back on
     enableUpdates
-    Range("A2").Select
+    scrollTop
 End Sub ' end LinkBugs
 Sub multiRangeBlank(col As Variant, rstart As String, rend As String, sht As String)
     ' Call the DefValueForBlank routine in a loop over multiple columns
@@ -367,14 +389,222 @@ Sub DefValueForBlank(editRng As String, shtName As String)
     Next Field
     ' Turn screen update and calculation back on
     enableUpdates
-    Range("A2").Select
+    scrollTop
 End Sub ' end DefValueForBlank
+Sub writeColumnsData()
+    'colsWrite = False
+    ' do not call try to write column data unless this is the first call (colsWrite = false), and sheet exists
+    If colsWrite <> True Then
+'If colsWrite <> True And WorksheetExists(getBugTabPfx) Then
+    colsWrite = True
+
+    Dim rowNu As Integer: rowNu = 200
+    Dim c As Variant
+    Dim v As Variant
+    Dim l As String
+    Dim n As String
+    Dim col As String
+
+'    colsSet = False
+    UnHideColumns
+'    setColNumbers
+'    prodColLtr = getColLtr(prodCol) ' now that the column number of filter is known, determine the column letter for range calls
+'    noteColLtr = getColLtr(noteCol)
+'    bugColLtr = getColLtr(bugCol)
+    
+
+        pauseUpdates
+        ' write the data range limits to the sheet
+        Range("A197").Select: ActiveCell.FormulaR1C1 = rngSt
+        Range("A198").Select: ActiveCell.FormulaR1C1 = rngEd
+        Dim colNm() As Variant: colNm = Array("Bug ID," & bugColLtr & "," & bugCol, "Product," & prodColLtr & "," & prodCol, _
+                    "Component," & "," & compCol, "Priority," & "," & prioCol, "Keywords," & "," & keywCol, _
+                    "Notes," & noteColLtr & "," & noteCol, "Waivers," & "," & waiveCol, "Target Build," & "," & tarBldCol, _
+                    "CFI," & "," & getColNu("CFI"), "Status Synopsis," & "," & statusSynCol, "Target Milestone," & "," & tarMilCol, _
+                    "Severity," & "," & severCol, "Status," & "," & statusCol, "Version," & "," & verCol)
+
+        For Each c In colNm
+            pauseUpdates
+            v = Split(CStr(c), ",")
+            n = Replace(CStr(v(0)), " ", "")
+            col = CStr(v(2))
+            
+            Range("A" & CStr(rowNu)).Select: ActiveCell.FormulaR1C1 = n
+            l = CStr(v(1)): If Len(l) < 1 Then l = getColLtr(CInt(v(2)))
+            Range("B" & CStr(rowNu)).Select: ActiveCell.FormulaR1C1 = l
+            Range("E" & CStr(rowNu)).Select: ActiveCell.FormulaR1C1 = l & rngSt & ":" & l & rngEd
+            Range("C" & CStr(rowNu)).Select: ActiveCell.FormulaR1C1 = col
+            'R2C8:R100C8
+            nmrng n, "R" & rngSt & "C" & col & ":" & "R" & rngEd & "C" & col, getBugTabPfx
+            rowNu = rowNu + 1
+        Next c
+        
+        enableUpdates
+ End If
+End Sub ' writeColumnsData
+Sub uniqTargBld()
+'
+' unique values for target build in the target build column
+' write the unique values into the summary area that is under the product column
+'
+    Dim targs As Range
+    Dim targ As Range
+    Dim targStr As String
+    Dim dateStr As String
+    Dim vStr As Variant
+    Dim vStr2 As Variant
+    Dim tarSumCol As String: tarSumCol = Range("B215").value
+    Dim iter As Integer: iter = 0
+    Dim idx1 As Integer
+    Dim bsize As Integer
+    Dim loc As Integer: loc = Range("C215").value ' the location in the spreadsheet where the target build start location vaue resides
+    Dim tarBldColLtr As String: tarBldColLtr = getColLtr(tarBldCol)
+    Dim builds(13) As Variant: builds(0) = ""
+    
+    pauseUpdates
+    'clear the summary column of target releases
+    Range(getRngStr(tarSumCol, tarSumCol, CStr(loc), CStr((loc + 13)))).Select
+    Selection.ClearContents
+    
+    'get all the targets in the target milestone
+    Set targs = Worksheets(getBugTabPfx).Range(getRngStr(tarBldColLtr, tarBldColLtr, rngSt, rngEd))
+    
+    ' build array of unique target builds from target build column
+    For Each targ In targs
+        If targ.value <> "---" Then ' ignore "not set" value
+            targStr = targ.value
+            If UBound(Filter(builds, targStr)) < 0 Then ' if < 0 then value not already in array
+                builds(iter) = targStr
+                iter = iter + 1
+                'MsgBox targStr
+            End If
+        End If
+    Next targ
+    bsize = iter - 1
+    
+    ' sort array
+    For iter = 0 To bsize
+        vStr = Right(CStr(builds(iter)), 8)
+        For idx1 = 0 To bsize
+            vStr2 = Right(CStr(builds(idx1)), 8)
+            If Len(vStr2) > 0 And CLng(vStr) < CLng(vStr2) Then
+                dateStr = CStr(builds(idx1))
+                builds(idx1) = builds(iter)
+                builds(iter) = dateStr
+            End If
+        Next idx1
+    Next iter
+    
+    'output target builds to sheet
+    For Each vStr In builds
+        If Len(vStr) > 0 Then
+            Range(prodColLtr & CStr(loc)).Select
+            ActiveCell.FormulaR1C1 = CStr(vStr)
+            loc = loc + 1
+        End If
+    Next vStr
+    enableUpdates
+End Sub ' end uniqTargBld
+Sub nmrng(rngName As String, rngStr As String, sht As String)
+'
+' nmrng Macro
+' create a named range that is sheet specific
+'
+    ActiveWorkbook.Worksheets(sht).names.Add name:=rngName, _
+        RefersToR1C1:="='" & sht & "'!" & rngStr
+    'ActiveWorkbook.Worksheets("bugs-2017-06-23").names("priority").Comment = ""
+End Sub
+
 '******************** End of formating sorting routines ********************
+'***************************************************************************
+
+'******************** Begin To Be Verified (TBV) analysis ******************
+'***************************************************************************
+' Run sql query
+' Generate unique list of owners
+' Filter on each owner
+' capture count owned by each owner
+' write to summary area of scrub sheet
+Sub TBVsqlQuery()
+    Dim SQLdataSht As String: SQLdataSht = getTBVtarget
+    Dim SQLConnectionQuery As String: SQLConnectionQuery = getTBVquery
+    Sheets(SQLdataSht).Select
+    Dim TableName As String: TableName = ActiveSheet.ListObjects(1).name
+
+    ClearTable TableName
+    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
+    TBVowners
+End Sub 'TBVsqlQuery
+Sub TBVowners()
+    Dim owners As Range
+    Dim owner As Range
+    Dim ownerStr As String
+    Dim vStr As Variant
+    Dim ownerTblCol As String
+    Dim iter As Integer: iter = 0
+    Dim rowCnt As Integer
+    Dim loc As Integer
+    Dim ownAry(13) As Variant: ownAry(0) = ""
+     
+    'get num rows in table
+    Dim tbl As ListObject
+    Set tbl = ActiveSheet.ListObjects(1)
+    rowCnt = tbl.ListRows.Count + 1
+    
+    'get all the targets in the target milestone
+    ownerTblCol = Sheets(getDataSheet).Range("k23").value
+    Set owners = Worksheets(getTBVtarget).Range(getRngStr(ownerTblCol, ownerTblCol, 2, CStr(rowCnt)))
+    
+    ' build array of unique owners from owners column
+    For Each owner In owners
+        If owner.value = "" Then ' count empty value as "external partner"
+            ownerStr = "External"
+            owner.value = ownerStr '' need to limit this to the number of rows in table, else we count entire 99 rows
+        Else
+            ownerStr = owner.value
+        End If
+        If UBound(Filter(ownAry, ownerStr)) < 0 Then ' if < 0 then value not already in array
+            ownAry(iter) = ownerStr
+            iter = iter + 1
+        End If
+    Next owner
+    
+    'output owners to sheet
+    'bugs-2017-07-13 K156
+    pauseUpdates
+    Sheets(getBugTabPfx).Activate
+    loc = Range("C219").value
+    Dim tbvColSt As String: tbvColSt = Range("c221").value
+    Dim tbvColEnd As String: tbvColEnd = Range("c222").value
+    'Sheets("bugs-2017-07-14").Activate
+    iter = 0
+    Range(Range("e218").value).Select
+    Selection.ClearContents
+    For Each vStr In ownAry
+        If Len(vStr) > 0 Then
+            Range(tbvColSt & CStr(loc)).Select
+            ActiveCell.FormulaR1C1 = CStr(vStr)
+            Range(tbvColEnd & CStr(loc)).Select
+            ActiveCell.FormulaR1C1 = CStr(getNumMatches(owners(), CStr(vStr)))
+            iter = iter + 1
+            loc = loc + 1
+        End If
+    Next vStr
+    enableUpdates
+End Sub 'TBVowners
+'******************** End of To Be Verified (TBV) analysis *****************
 '***************************************************************************
 
 '*******************************************
 '** Subroutines that control general display
 '*******************************************
+Sub scrollTop()
+'
+' scroll to top
+'
+    ActiveWindow.ScrollRow = 2
+    Range("A1").Select
+End Sub
 Sub hideColumnRng(rng As String)
     Columns(rng).Select: Selection.EntireColumn.Hidden = True
 End Sub
@@ -382,30 +612,34 @@ Sub hideColumnName(colName As String)
     Dim cn As String: cn = getColLtr(getColNu(colName))
     hideColumnRng (getRngStr(cn, cn))
 End Sub
-Sub ClearTable()
+Sub ClearTable(TableName As String)
 '
 ' ClearTable Macro
 ' Clear but do not delete
 '
 ' Keyboard Shortcut: Ctrl+Shift+T
 '
-    Range(getRngStr("A", "Z", rngSt, rngEd)).Select
+    Range(getRngStr("A", "AB", rngSt, rngEd)).Select
     Selection.ClearContents
-    Range("Table_ExternalData_1[[#Headers],[BugId]]").Select
+    'Range("Table_ExternalData_1[[#Headers],[BugId]]").Select
+    Range(TableName & "[[#Headers],[BugId]]").Select
 End Sub 'end ClearTable
-Sub ClearFilters()
+Sub ClearFilters(Optional writeColumns As Boolean)
 '
 ' ClearFilters Macro
 ' Clear column filters
 '
 ' The "If" prevents the error when clearning when no filters are set
 '
+    If writeColumns = True Then
+        writeColumnsData ' this gets called all the time, but set a boolean so it only does work once
+    End If
     pauseUpdates
     If ActiveSheet.FilterMode Then ActiveSheet.ShowAllData
     ' Go To cell D18 after processing
     UnHideColumns
     hideColumnRng (getRngStr(bugColLtr, bugColLtr))
-    Range("A1").Select
+    scrollTop
     enableUpdates
 End Sub 'ClearFilters
 Sub HideColumns()
@@ -442,6 +676,21 @@ Sub enableUpdates()
     Application.Calculation = xlAutomatic
     Application.ScreenUpdating = True
 End Sub
+Sub CopySummary()
+'
+' CopySummary Macro
+' copy defect summary
+
+    Sheets(getBugTabPfx).Select
+    UnHideColumns
+    Range("K145:N162").Select
+    Selection.Copy
+    Sheets(getTriggerSheet).Select
+    Range("a34").Select
+    Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+        :=False, Transpose:=False
+    Range("a31").Select
+End Sub
 '************** End of general display section ****************************
 '**************************************************************************
 '*********************************************
@@ -462,7 +711,7 @@ Sub CopySQLdata()
     createCopy ThisSht, NewSht, getTriggerSheet
     
     Sheets(SQLdataSht).Select
-    ClearTable
+    ClearTable ActiveSheet.ListObjects(1).name
     ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
     
     Range(getRngStr("A", "F", rngSt, rngEd)).Select
@@ -494,11 +743,19 @@ Sub CopySQLdata()
     FormatScrubSheet ThisSht
 End Sub ' end CopySQLdata
 Sub createCopy(fromSht As String, toSht As String, afterSht As String)
+    Dim ShName As String
     pauseUpdates
     ' make sure the copy from sheet is the active sheet
-    ClearFilters
-    Sheets(fromSht).Select
+    ClearFilters False ' send "False" so writingColumns not attempted until sheet is copied.
+
+    ' check if TO already exists, then rename from to avoid collision if it does
+    If WorksheetExists(toSht) Then
+        ShName = fromSht & "-" & CStr(Hour(Now)) & CStr(Minute(Now))
+        Sheets(fromSht).name = ShName
+        fromSht = ShName
+    End If
     
+    Sheets(fromSht).Select
     ' rename new sheet
     '
     Sheets(fromSht).Copy after:=Sheets(afterSht)
@@ -619,6 +876,8 @@ Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     'C:\Program Files (x86)\Mozilla Firefox\firefox.exe & " "
     Shell (getBrowserPath & bzURL & value)
 End Sub
+'*************** End Pull data from external sources and import section **************************
+'*************************************************************************************************
 '**************************************
 '** trigger sheet routines
 '**************************************
@@ -642,10 +901,11 @@ Sub OpenBugCommon(URLcell As String, DataSht As String, prompt As String, Title 
     bzqueryFunc DataSht, URLcell, bugNum
 End Sub
 Sub trBlocked()
+    Dim nxtrw As Integer: nxtrw = getNextRow
     trHeadings "A1", "Blocked without target build"
 End Sub
 Sub trReview()
-    trHeadings "A6", """For Review"" > 3 days"
+    trHeadings "A4", """For Review"" > 3 days"
 End Sub
 Sub trPriority()
     trHeadings "A11", "Priority and Keyword not set > 7days and not ""For Review"""
@@ -662,6 +922,9 @@ End Sub
 Sub trStaleP1()
     trHeadings "A39", "P1 without update > 14 days"
 End Sub
+Sub trNoDisp()
+    trHeadings "a25", "No Disposition"
+End Sub
 Sub trHeadings(Pos As String, Text As String)
     With Worksheets(getTriggerSheet).Range(Pos)
         .value = Text
@@ -672,11 +935,31 @@ End Sub
 Sub trClearValueFormat()
     Worksheets(getTriggerSheet).Range("22:30").Clear
 End Sub
+Sub runNoDisp()
+    Worksheets(getTriggerSheet).Activate
+    Set trigSht = ActiveSheet
+    Worksheets(Range("e1").value).Activate
+    NoDisposition
+    copyFilterRange
+    ' goto trigger sheet in calculated position
+    ' call paste
+End Sub
 Sub runReview()
     Worksheets(getTriggerSheet).Activate
     Set trigSht = ActiveSheet
     Worksheets(Range("e1").value).Activate
     ForReview
+    copyFilterRange
+    ' goto trigger sheet in calculated position
+    ' call paste
+End Sub
+Sub lastFilledCell()
+    Dim c As Integer: c = Range("D2:d100").Cells.SpecialCells(xlCellTypeBlanks).Row
+    MsgBox CStr(c)
+End Sub
+Sub copyFilterRange()
+    Dim rows As Integer: rows = ActiveSheet.AutoFilter.Range.Columns(1).SpecialCells(xlCellTypeVisible).Cells.Count
+    Range("a1:o100").Cells.SpecialCells(xlCellTypeVisible).Copy
 End Sub
 '************** end trigger sheet routines ****************
 '**********************************************************
@@ -755,7 +1038,7 @@ Sub UDUformat()
     Worksheets("3parRedzone").Activate
     Dim ThisSht As String: ThisSht = ActiveSheet.name
 
-    LinkBugs getBZSheet & "!B9", "3parRedZone", getRngStr(bugColLtr, bugColLtr, urngSt, urngEd)
+    LinkBugs getBZSheet & "!B9", "3parRedZone", getRngStr("C", "C", urngSt, urngEd)
     UnHideColumns ' Make columns visible before looking-up column letters
     Dim colNm() As Variant: colNm = Array("Keywords", "deadline", "gr8*", "*notes", "whiteboard", "developer*")
     multiRangeBlank colNm(), urngSt, urngEd, ThisSht
@@ -780,6 +1063,8 @@ End Sub ' end UDUformat
 '***********************
 '** Future use routines
 '***********************
+
+
 Sub AskColumnNumber()
     Dim cname As String
     Dim cnumber As Integer
@@ -817,16 +1102,7 @@ Dim tbleName As String: tbleName = ActiveSheet.ListObjects(1).name
     End With
     Range("A1").Select
 End Sub ' end Table2Range
-Sub uniqueColumn()
-'
-' uniqueColumn Macro
-' uniq
-'
-' Keyboard Shortcut: Ctrl+Shift+T
-'
-    Application.CutCopyMode = False
-    ActiveSheet.Range("$A$1:$A$38").RemoveDuplicates Columns:=1, Header:=xlNo
-End Sub ' end uniqueColumn
+
 Sub callGetRng()
     Dim str As String: str = getRngStr("a", "a")
     str = getRngStr("A", "b", "2", "100")
@@ -836,6 +1112,9 @@ Function setRng()
         rngSt = "2"
         rngEd = "100"
     End If
+End Function
+Function WorksheetExists(sName As String) As Boolean
+    WorksheetExists = Evaluate("ISREF('" & sName & "'!A1)")
 End Function
 '*********** end of future use routines ****************
 '*******************************************************
@@ -857,14 +1136,23 @@ Function getMDstring() As String
     Dim fromTab As String
     fromTab = InputBox(prompt, "Input version of sheet")
     If InStr(fromTab, "-") <> 1 And Len(fromTab) > 0 Then fromTab = "-" & fromTab
-    fromTab = "bugs-" & YMDstr & fromTab
+    fromTab = getBugTabPfx & fromTab
     getMDstring = fromTab
 End Function ' end getMDstring
+Function getBugTabPfx() As String
+    getBugTabPfx = "bugs-" & YMDstr
+End Function
 Function getSQLtarget() As String
     getSQLtarget = Worksheets(getDataSheet).Range("K10").value
 End Function
 Function getSQLquery() As String
     getSQLquery = Worksheets(getDataSheet).Range("K9").value
+End Function
+Function getTBVtarget() As String
+    getTBVtarget = Worksheets(getDataSheet).Range("K22").value
+End Function
+Function getTBVquery() As String
+    getTBVquery = Worksheets(getDataSheet).Range("K21").value
 End Function
 Function getDataSheet() As String
     getDataSheet = "Data"
@@ -891,11 +1179,18 @@ End Function
 Function getBrowserPath() As String
     getBrowserPath = Worksheets(getBZSheet).Range("B6").value & " "
 End Function
+Function getNextRow() As Integer
+    If NextRow = 0 Then
+        getNextRow = 1
+    Else
+        getNextRow = NextRow
+    End If
+End Function
 Function getColNu(TextToFind As String) As Integer
     ' from column header, determine column number
     Dim rng1 As Range
     pauseUpdates
-    Rows("1:1").Select
+    rows("1:1").Select
     
     Set rng1 = ActiveSheet.UsedRange.Find(TextToFind, , xlValues, xlWhole)
     If Not rng1 Is Nothing Then
@@ -930,10 +1225,24 @@ Function setColNum()
      compCol = getColNu("component")
      severCol = getColNu("severity")
      statusCol = getColNu("status")
+     statusSynCol = getColNu("status synopsis")
      prioCol = getColNu("priority")
      keywCol = getColNu("keywords")
      noteCol = getColNu("*notes")
+     verCol = getColNu("version")
      colsSet = True
     End If
-    Range("a1").Select
+    scrollTop
 End Function
+Function getNumMatches(ary As Variant, str As String) As Integer
+    Dim elem As Variant
+    Dim cnt As Integer: cnt = 0
+    
+    For Each elem In ary
+        If str = CStr(elem) Then
+            cnt = cnt + 1
+        End If
+    Next elem
+    getNumMatches = cnt
+End Function
+
