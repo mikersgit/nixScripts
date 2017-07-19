@@ -1,15 +1,20 @@
 Attribute VB_Name = "Module1"
+'########## AVITUS 1.4 ################
+'#michael.roberts@hpe.com 19-July-2017#
+'######################################
+
 '*********** Sections **********
 ' 1. Globals
 ' 2. Initialize
 ' 3. Filter Bugs
 ' 4. format, sort
 ' 5. Begin To Be Verified (TBV) analysis
-' 6. control general display
-' 7. Pull data from external sources
-' 8. trigger sheet
-' 9. 3par (UDU) bug
-' 10. Functions Section
+' 6. Begin YZ GZ bugs analysis
+' 7. control general display
+' 8. Pull data from external sources
+' 9. trigger sheet
+' 10. 3par (UDU) bug
+' 11. Functions Section
 
 '**************
 '** Globals definitions
@@ -282,6 +287,10 @@ Sub FormatScrubSheet(PrevSht As String)
     Range("n111").Select
     ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
         "'" & ThisSht & "'" & "!A2", TextToDisplay:="Top"
+    Range("n1").Select
+    ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
+        "'" & ThisSht & "'" & "!K145", TextToDisplay:="Summary"
+
 ' date to compare age of bugs
 '
 ' insertDate Macro
@@ -595,6 +604,77 @@ End Sub 'TBVowners
 '******************** End of To Be Verified (TBV) analysis *****************
 '***************************************************************************
 
+'******************** Begin YZ GZ bugs analysis*****************
+'***************************************************************
+Sub YzgzsqlQuery()
+    Dim SQLdataSht As String: SQLdataSht = getyzgztarget
+    Dim SQLConnectionQuery As String: SQLConnectionQuery = getyzgzquery
+    Sheets(SQLdataSht).Select
+    Dim TableName As String: TableName = ActiveSheet.ListObjects(1).name
+
+    ClearTable TableName
+    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
+    YzGzproducts
+End Sub 'YzgzsqlQuery
+Sub YzGzproducts()
+    Dim prods As Range
+    Dim prod As Range
+    Dim prodStr As String
+    Dim vStr As Variant
+    Dim prodTblCol As String
+    Dim iter As Integer: iter = 0
+    Dim rowCnt As Integer
+    Dim loc As Integer
+    Dim prodAry(25) As Variant: prodAry(0) = ""
+     
+    'get num rows in table
+    Dim tbl As ListObject
+    Set tbl = ActiveSheet.ListObjects(1)
+    rowCnt = tbl.ListRows.Count + 1
+    
+    'get all the products
+    prodTblCol = Sheets(getDataSheet).Range("k27").value
+    Set prods = Worksheets(getyzgztarget).Range(getRngStr(prodTblCol, prodTblCol, 2, CStr(rowCnt)))
+    
+    ' build array of unique prods from prods column
+    For Each prod In prods
+        If prod.value = "" Then ' count empty value as "external partner"
+            'should not happen
+        Else
+            prodStr = prod.value
+        End If
+        If UBound(Filter(prodAry, prodStr)) < 0 Then ' if < 0 then value not already in array
+            prodAry(iter) = prodStr
+            iter = iter + 1
+        End If
+    Next prod
+    
+    'output prods to sheet
+    'bugs-2017-07-13 K156
+    pauseUpdates
+    Sheets(getBugTabPfx).Activate
+    loc = Range("C224").value
+    Dim yzgzColSt As String: yzgzColSt = Range("c226").value
+    Dim yzgzColEnd As String: yzgzColEnd = Range("c227").value
+    'Sheets("bugs-2017-07-14").Activate
+    iter = 0
+    Range(Range("e223").value).Select
+    Selection.ClearContents
+    For Each vStr In prodAry
+        If Len(vStr) > 0 Then
+            Range(yzgzColSt & CStr(loc)).Select
+            ActiveCell.FormulaR1C1 = CStr(vStr) & ":  " & CStr(getNumMatches(prods(), CStr(vStr)))
+'            Range(tbvColEnd & CStr(loc)).Select
+'            ActiveCell.FormulaR1C1 = CStr(getNumMatches(prods(), CStr(vStr)))
+            iter = iter + 1
+            loc = loc + 1
+        End If
+    Next vStr
+    enableUpdates
+End Sub 'YzGzproducts
+'******************** End YZ GZ bugs analysis*****************
+'*************************************************************
+
 '*******************************************
 '** Subroutines that control general display
 '*******************************************
@@ -683,7 +763,7 @@ Sub CopySummary()
 
     Sheets(getBugTabPfx).Select
     UnHideColumns
-    Range("K145:N162").Select
+    Range(Range("e228").value).Select
     Selection.Copy
     Sheets(getTriggerSheet).Select
     Range("a34").Select
@@ -1153,6 +1233,12 @@ Function getTBVtarget() As String
 End Function
 Function getTBVquery() As String
     getTBVquery = Worksheets(getDataSheet).Range("K21").value
+End Function
+Function getyzgztarget() As String
+    getyzgztarget = Worksheets(getDataSheet).Range("K26").value
+End Function
+Function getyzgzquery() As String
+    getyzgzquery = Worksheets(getDataSheet).Range("K25").value
 End Function
 Function getDataSheet() As String
     getDataSheet = "Data"
