@@ -1,6 +1,6 @@
 Attribute VB_Name = "Module1"
 '########## AVITUS 1.4 ################
-'#michael.roberts@hpe.com 19-July-2017#
+'#michael.roberts@hpe.com 21-July-2017#
 '######################################
 
 '*********** Sections **********
@@ -171,7 +171,7 @@ Sub InPlay()
         Operator:=xlOr, Criteria2:="="
     ' 13 is M "Target build" equal to dashes which means not set
     ActiveSheet.Range(filterRegion).AutoFilter Field:=tarBldCol, Criteria1:="=---"
-    ' 17 is Q "Target Milestone" equal to Avitus, also need to check for PPI*
+    ' 17 is Q "Target Milestone" equal to Current Release Name, also need to check for PPI*
     ActiveSheet.Range(filterRegion).AutoFilter Field:=tarMilCol, Criteria1:=getRelName, _
         Operator:=xlOr, Criteria2:="PP*"
     hideColumnRng ("k:m")
@@ -289,7 +289,7 @@ Sub FormatScrubSheet(PrevSht As String)
         "'" & ThisSht & "'" & "!A2", TextToDisplay:="Top"
     Range("n1").Select
     ActiveSheet.Hyperlinks.Add Anchor:=Selection, Address:="", SubAddress:= _
-        "'" & ThisSht & "'" & "!K145", TextToDisplay:="Summary"
+        "'" & ThisSht & "'" & "!N163", TextToDisplay:="Summary"
 
 ' date to compare age of bugs
 '
@@ -535,13 +535,9 @@ End Sub
 ' capture count owned by each owner
 ' write to summary area of scrub sheet
 Sub TBVsqlQuery()
-    Dim SQLdataSht As String: SQLdataSht = getTBVtarget
-    Dim SQLConnectionQuery As String: SQLConnectionQuery = getTBVquery
-    Sheets(SQLdataSht).Select
-    Dim TableName As String: TableName = ActiveSheet.ListObjects(1).name
-
-    ClearTable TableName
-    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
+    
+    CommonSQLQuery getTBVtarget, getTBVquery
+    
     TBVowners
 End Sub 'TBVsqlQuery
 Sub TBVowners()
@@ -556,9 +552,7 @@ Sub TBVowners()
     Dim ownAry(13) As Variant: ownAry(0) = ""
      
     'get num rows in table
-    Dim tbl As ListObject
-    Set tbl = ActiveSheet.ListObjects(1)
-    rowCnt = tbl.ListRows.Count + 1
+    rowCnt = getTablRows
     
     'get all the targets in the target milestone
     ownerTblCol = Sheets(getDataSheet).Range("k23").value
@@ -607,33 +601,94 @@ End Sub 'TBVowners
 '******************** Begin YZ GZ bugs analysis*****************
 '***************************************************************
 Sub YzgzsqlQuery()
-    Dim SQLdataSht As String: SQLdataSht = getyzgztarget
-    Dim SQLConnectionQuery As String: SQLConnectionQuery = getyzgzquery
-    Sheets(SQLdataSht).Select
-    Dim TableName As String: TableName = ActiveSheet.ListObjects(1).name
 
-    ClearTable TableName
-    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
+    CommonSQLQuery getyzgztarget, getyzgzquery
+
+    YzGzowners
+    ' get back to sqltab
+    Sheets(getyzgztarget).Activate
     YzGzproducts
 End Sub 'YzgzsqlQuery
+Sub YzGzowners()
+    Dim owns As Range
+    Dim own As Range
+    Dim ownStr As String
+    Dim spacStr As String
+    Dim vStr As Variant
+    Dim ownTblCol As String
+    Dim iter As Integer: iter = 0
+    Dim rowCnt As Integer
+    Dim loc As Integer
+    Dim ownLen As Integer: ownLen = 40
+    Dim ownAry(25) As Variant: ownAry(0) = ""
+     
+    'get num rows in table
+    rowCnt = getTablRows
+    
+    'get all the owners
+    ownTblCol = Sheets(getDataSheet).Range("k27").value
+    Set owns = Worksheets(getyzgztarget).Range(getRngStr(ownTblCol, ownTblCol, 2, CStr(rowCnt)))
+    
+    ' build array of unique owns from owns column
+    For Each own In owns
+        If own.value = "" Then ' count empty value as "external partner"
+            'should not happen
+        Else
+            ownStr = own.value
+        End If
+        If UBound(Filter(ownAry, ownStr)) < 0 Then ' if < 0 then value not already in array
+            ownAry(iter) = ownStr
+            iter = iter + 1
+        End If
+    Next own
+    
+    'output owns to sheet
+    'bugs-2017-07-13 K156
+    pauseUpdates
+    Sheets(getBugTabPfx).Activate
+    loc = Range("C224").value
+    Dim yzgzColSt As String: yzgzColSt = Range("c226").value
+    Dim yzgzColEnd As String: yzgzColEnd = Range("c227").value
+    'Sheets("bugs-2017-07-14").Activate
+    iter = 0
+    
+    ' Clear the range before writing new info to it
+    Range(Range("e223").value).Select
+    Selection.ClearContents
+    
+    For Each vStr In ownAry
+        If Len(vStr) > 0 Then
+            Range(yzgzColSt & CStr(loc)).Select
+            If Len(vStr) < ownLen Then
+                spacStr = Space(ownLen - Len(vStr))
+            Else
+                spacStr = 1
+            End If
+            ActiveCell.FormulaR1C1 = CStr(vStr) & ":" & spacStr & CStr(getNumMatches(owns(), CStr(vStr)))
+            iter = iter + 1
+            loc = loc + 1
+        End If
+    Next vStr
+    enableUpdates
+End Sub 'YzGzowners
 Sub YzGzproducts()
     Dim prods As Range
     Dim prod As Range
     Dim prodStr As String
+    Dim spacStr As String
     Dim vStr As Variant
     Dim prodTblCol As String
     Dim iter As Integer: iter = 0
     Dim rowCnt As Integer
     Dim loc As Integer
+    Dim prodLen As Integer: prodLen = 40
     Dim prodAry(25) As Variant: prodAry(0) = ""
      
     'get num rows in table
-    Dim tbl As ListObject
-    Set tbl = ActiveSheet.ListObjects(1)
-    rowCnt = tbl.ListRows.Count + 1
+    rowCnt = getTablRows
     
-    'get all the products
-    prodTblCol = Sheets(getDataSheet).Range("k27").value
+    'get all the proders
+    prodTblCol = Sheets(getDataSheet).Range("k28").value
     Set prods = Worksheets(getyzgztarget).Range(getRngStr(prodTblCol, prodTblCol, 2, CStr(rowCnt)))
     
     ' build array of unique prods from prods column
@@ -653,19 +708,25 @@ Sub YzGzproducts()
     'bugs-2017-07-13 K156
     pauseUpdates
     Sheets(getBugTabPfx).Activate
-    loc = Range("C224").value
+    loc = Range("C230").value
     Dim yzgzColSt As String: yzgzColSt = Range("c226").value
     Dim yzgzColEnd As String: yzgzColEnd = Range("c227").value
     'Sheets("bugs-2017-07-14").Activate
     iter = 0
-    Range(Range("e223").value).Select
+    
+    ' Clear the range before writing new info to it
+    Range(Range("e232").value).Select
     Selection.ClearContents
+    
     For Each vStr In prodAry
         If Len(vStr) > 0 Then
             Range(yzgzColSt & CStr(loc)).Select
-            ActiveCell.FormulaR1C1 = CStr(vStr) & ":  " & CStr(getNumMatches(prods(), CStr(vStr)))
-'            Range(tbvColEnd & CStr(loc)).Select
-'            ActiveCell.FormulaR1C1 = CStr(getNumMatches(prods(), CStr(vStr)))
+            If Len(vStr) < prodLen Then
+                spacStr = Space(prodLen - Len(vStr))
+            Else
+                spacStr = 1
+            End If
+            ActiveCell.FormulaR1C1 = CStr(vStr) & ":" & spacStr & CStr(getNumMatches(prods(), CStr(vStr)))
             iter = iter + 1
             loc = loc + 1
         End If
@@ -788,12 +849,15 @@ Sub CopySQLdata()
     Dim SQLdataSht As String: SQLdataSht = getSQLtarget
     Dim SQLConnectionQuery As String: SQLConnectionQuery = getSQLquery
     
+    ' make the SQLquery
+    CommonSQLQuery SQLdataSht, SQLConnectionQuery
+    
+    ' create new tab to recieve updated output
     createCopy ThisSht, NewSht, getTriggerSheet
-    
+       
     Sheets(SQLdataSht).Select
-    ClearTable ActiveSheet.ListObjects(1).name
-    ActiveWorkbook.Connections(SQLConnectionQuery).Refresh
     
+    ' Begin copy data from SQLtable to new sheet
     Range(getRngStr("A", "F", rngSt, rngEd)).Select
     Selection.Copy
     Sheets(NewSht).Select
@@ -816,11 +880,20 @@ Sub CopySQLdata()
     Range("AD2").Select
     Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
         :=False, Transpose:=False
+    ' End of copy from SQLdata
     
     Range("K1").Select
     enableUpdates
+    
     ' Pass in copy FROM sheet as previous sheet
     FormatScrubSheet ThisSht
+    
+    'update To Be Verified data
+    TBVsqlQuery
+    
+    'update Yellow and Green Zone data
+    YzgzsqlQuery
+    
 End Sub ' end CopySQLdata
 Sub createCopy(fromSht As String, toSht As String, afterSht As String)
     Dim ShName As String
@@ -955,6 +1028,17 @@ Sub bzqueryFunc(DataSht As String, URLcell As String, Optional value As String)
     Dim bzURL As String:  bzURL = Worksheets(DataSht).Range(URLcell).value
     'C:\Program Files (x86)\Mozilla Firefox\firefox.exe & " "
     Shell (getBrowserPath & bzURL & value)
+End Sub
+Sub CommonSQLQuery(targetTab As String, queryName As String)
+    Dim TableName As String
+    
+    pauseUpdates
+    Sheets(targetTab).Select
+    TableName = ActiveSheet.ListObjects(1).name
+
+    ClearTable TableName
+    ActiveWorkbook.Connections(queryName).Refresh
+    enableUpdates
 End Sub
 '*************** End Pull data from external sources and import section **************************
 '*************************************************************************************************
@@ -1330,5 +1414,11 @@ Function getNumMatches(ary As Variant, str As String) As Integer
         End If
     Next elem
     getNumMatches = cnt
+End Function
+Function getTablRows() As Integer
+    'get num rows in table
+    Dim tbl As ListObject
+    Set tbl = ActiveSheet.ListObjects(1)
+    getTablRows = tbl.ListRows.Count + 1
 End Function
 
