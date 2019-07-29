@@ -1,4 +1,8 @@
 Attribute VB_Name = "GeneralUtilities"
+'########################
+'#  Utility subroutines
+'########################
+
 Sub pauseUpdates()
     ' increase performance from 1 minute, to 2 seconds by turning off screen update and auto calculation
     Application.ScreenUpdating = False
@@ -88,6 +92,20 @@ Sub FmtNoWrap()
         .MergeCells = False
     End With
     Range("A1").Select
+End Sub
+Sub FreezeFirstRow()
+'
+' FreezeFirstRow Macro
+' Freeze first row
+'
+'
+    rows("1:1").Select
+    With ActiveWindow
+        .SplitColumn = 0
+        .SplitRow = 1
+    End With
+    ActiveWindow.FreezePanes = True
+    Range("a1").Select
 End Sub
 Sub DelayInSeconds(delay As Integer)
     Dim time1, time2, start
@@ -236,3 +254,10 @@ End Function 'lastFilledCell()
 Function getDataSheet() As String
     getDataSheet = "Data"
 End Function
+Function getMaxRow() As Integer
+    getMaxRow = Sheets(getDataSheet).Range("a22").Value
+End Function
+Function getWorkbookName() As String
+    getWorkbookName = Sheets(getDataSheet).Range("a13").Value
+End Function
+

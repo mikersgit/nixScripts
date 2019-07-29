@@ -1,6 +1,6 @@
 Attribute VB_Name = "GeneralBugzilla"
 '########################
-'# Utility subroutines
+'# Bugzilla Utility subroutines
 '########################
 
 ' Given:
@@ -175,3 +175,16 @@ Sub LinkIds(idLnkPrefx As String, shtName As String, lnkRange As String, Optiona
     Next id
     enableUpdates
 End Sub ' end LinkIds
+Function getBzURL() As String
+    getBzURL = Sheets(getDataSheet).Range("a14").Value
+End Function
+Function get3PARBzURL() As String
+    get3PARBzURL = Sheets(getDataSheet).Range("a25").Value
+End Function
+Function getCfiURL() As String
+    getCfiURL = Sheets(getDataSheet).Range("A18").Value
+End Function
+Function getBzShtRange() As String
+    'range in downloaded bug sheet to copy to main sheet
+    getBzShtRange = Sheets(getDataSheet).Range("A15").Value
+End Function
