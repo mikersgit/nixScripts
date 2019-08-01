@@ -173,9 +173,11 @@ Sub AddColFilter(begCol As String, endCol As String)
 ' AddColFilter Macro
 ' Add filtering to all columns
 '
-    Dim rangeStr As String: rangeStr = begCol & ":" & endCol
-    Columns(rangeStr).Select
-    Selection.AutoFilter
+   If ActiveSheet.AutoFilterMode = False Then
+        Dim rangeStr As String: rangeStr = begCol & ":" & endCol
+        Columns(rangeStr).Select
+        Selection.AutoFilter
+    End If
     Application.Goto Reference:="R1C2"
 End Sub
 
