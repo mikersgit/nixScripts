@@ -1,0 +1,47 @@
+#
+# Else if the global_event_queue not empty, pop from queue
+#        If the event belongs to a non-existing session
+#                Create session and activate (atomically) to take ownership of session
+#                Process this event and any other events that enque in the sid_evt_q.
+#                        When no more events, or if an event blocks: inactivate; go back to start        
+#                
+#        Else If the event belongs to BUSY session
+#                enqueue event in the session's; go back to start
+#
+#        Else if it belongs to an inactive session
+#                Activate and process this event and any other events enqueued in the per-session sid_evt_q.
+#
+#                       When no more events, or if an event blocks: inactivate; go back to start
+#
+#
+# Else go back to Start.
+
+# It would be nice to create the only one missing: the thread that gets an
+# event from the global q and finds the session "busy" and enqueues in the
+# session q.
+
+msc {
+    hscale=2;
+
+    e [label="global event\nqueue"],
+    c [label="complete\nqueue"],
+    th [label="thread"],
+    sc [label="session\ncollection"],
+    sr [label="session\nrecord"],
+    se [label="session rec\nevent queue"],
+    v [label="VDS"];
+
+    --- [label="Start", ID="1"];
+    th => c [label="check complete queue"];
+    th -> th [label="queue empty"];
+    th => e [label="check event queue"];
+    e -> th [label="dequeue event"];
+    th => sc [label="check session collection"];
+    th -> th [label="existing session"];
+    th => sr [label="check session state"];
+    th -> th [label="busy session"];
+    th >> se [label="enqueue event"];
+    --- [label="go to start"];
+    c <-> th [label="check complete queue"];
+    e <-> th [label="check event queue"];
+}

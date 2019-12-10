@@ -1,0 +1,78 @@
+/**
+ * Basic Persistent Handles sequence between client and server with
+ * network disconnect after successful negotiate.
+ *
+ * To use this with Doxygen replace 'msc {' with
+ * '/**'
+ *  '* @msc'
+ * and '}' with endtag
+ * '* @endmsc'
+ *
+ * More mscgen info:
+ *  http://16.125.127.75/home_dirs/mwroberts/bin/data/flow/mscgen/
+ *  http://code.google.com/p/mscgen/
+ *  http://www.mcternan.me.uk/mscgen/
+ *
+ * To create a PNG image invoke the mscgen tool:
+ *    mscgen -i cs.msc -o cs.png -T png
+ */
+msc {
+ /*
+  * If you would like slanting sequence lines uncomment arcgradient
+  * arcgradient = 8;
+  */
+
+ arcgradient = "8", hscale = "1.5";
+
+  /* increase output image size to 1.5*default. default=600px
+   */
+
+ // hscale = "1.5";
+ 
+ /* setup labels for verticle sequence lines
+  */
+ c [label="Client"],s [label="Server"],n [label="notes"];
+
+ /* Begin sequence
+  */
+ n note n [label="The server will recognize the SMB_COM_NEGOTIATE request and send a response to the client that we use SMB 3 protocol."];
+ c=>s [label="SMB_COM_NEGOTIATE REQ"];
+ c<<s [label="SMB2 NEGOTIATE RESP"];
+
+ n note n [label="The server will issue a response that persistent handles are supported by setting the Persistent Handles bit to TRUE."];
+ c=>s [label="SMB2 NEGOTIATE REQ"];
+ c<<s [label="SMB2 NEGOTIATE RESP"];
+
+ n note n [label="No new functionality needed to handle setup request."];
+ c=>s [label="SMB2 SESSION_SETUP REQ"];
+ c<<s [label="SMB2 SESSION_SETUP RESP"];
+
+ n note n [label="The server will issue a response that Continuous Availability is supported by setting Continuous Availability bit to TRUE."];
+ c=>s [label="SMB2 TREE_CONNECT REQ"];
+ c<<s [label="SMB2 TREE_CONNECT RESP"];
+
+ n note n [label="The server is now connected and additional SMB commands may be executed."];
+
+ /* ellipsis marks to indicate time/commands will elapse */
+ ...;
+
+ n note n [label="When DH2Q bits are set in a CREATE REQUEST then a new entry is added to the Persistent Handle Store (PHS)."];
+ c=>s [label="SMB2 CREATE REQ w/ DH2Q"];
+ c<<s [label="SMB2 CREATE RESP"];
+
+ n note n [label="When a network disconnect occurs the items in the PHS will remain until they expire or the client is able to reconnect."];
+ c abox s [label="Network Disconnect", textbgcolor="red"];
+ c-xs [label="REQUEST", linecolor="orange"];
+ c rbox s [label="Network Connection Re-established", textbgcolor="green"];
+
+ n note n [label="After the network returns the client re-connects."];
+ c => s [label="Connects re-established."];
+ c << s [label="SMB2 TREE_CONNECT RESP."];
+
+ n note n [label="If the client has Persistent Handle info for a file it wil send a CREATE REQUEST w/ a DH2C flag. The server will query the PHS and respond according to the state of the PHe in the PHS."];
+ c => s [label="SMB2 CREATE REQUEST w/ DH2C."];
+ c << s [label="SMB2 CREATE RESP."];
+|||;
+|||;
+--- [label="end of seqence"];
+} // end mscgen sequence
