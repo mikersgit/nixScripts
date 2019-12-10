@@ -1,0 +1,55 @@
+digraph B {
+    label = "3PAR/FilePersona installation kit process"
+    StarBld [shape=triangle]
+    rpms [shape=diamond]
+    fpISO [shape=diamond]
+    star [shape=Msquare]
+    jenkins [shape=tab]
+    TestNG [shape=tab]
+    SrcTag [shape=tab]
+    subgraph cluster_src {
+        label = "GHE"
+        hpsmb
+        pmlfile
+        pmlcore
+        advfs
+        multiProt
+    }
+
+    subgraph cluster_artF {
+        label = "Artifactory"
+        platform [shape=hexagon]
+    }
+
+    subgraph cluster_ThreePar {
+        label = "Simpsons"
+        ThreeParISO [shape=hexagon]
+        StarBld
+    }
+    subgraph cluster_fpISO {
+        label = "Vapp"
+        QRiso [shape=triangle]
+    }
+    subgraph cluster_compile {
+        label = "buildNode"
+        compile [shape=triangle]
+    }
+    subgraph cluster_ftest {
+        label = "Vapp"
+        funTest [shape=diamond]
+    }
+
+    hpsmb -> compile
+    pmlfile -> compile
+    pmlcore -> compile
+    advfs -> compile
+    multiProt -> compile
+    compile -> rpms
+    rpms -> QRiso
+    platform -> QRiso
+    QRiso -> fpISO
+    ThreeParISO -> StarBld
+    fpISO -> StarBld [label="RTI"]
+    fpISO -> funTest
+    StarBld -> star
+}

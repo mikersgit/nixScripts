@@ -1,0 +1,57 @@
+digraph TaMEorg {
+label="TaME"
+rankdir=LR
+//
+// people
+//
+
+ant  [label="Antonio Neri"];
+phild [label="Philip Davis"];
+milan [ label="Milan Shetti"];
+uresh  [label="Uresh Vahalia"];
+patti [label="Patti White"];
+bonds [ label="Jeff Bonds"];
+    arunk [label="Arun Krishna"];
+    albert [label="Albert Lin"];
+    briant [label="Brian Turner"];
+    larryf [label="Larry Fenske" color="red"];
+    rhys [label="Rhys Evans"];
+    kari [label="Kari Kechter"];
+    matte [label="Matt Enmark"];
+    yoshi [label="Yoshi Okayasu"];
+    grantg [label="Grant Graves"];
+    michel [label="Michel Racine"];
+    fredc [label="Fred Christianson"];
+subgraph cluster_mgrs {
+        label="Upper Managers";
+        ant -> phild -> milan -> uresh -> patti;
+        // patti -> bonds;
+}
+subgraph cluster_tteam {
+    label="TaME"
+    rankdir=TB
+    patti->bonds;
+        subgraph cluster_pteam {
+            label="Patti's Team"
+            patti -> kari;
+            patti -> matte;
+            patti -> rhys;
+        }
+        subgraph cluster_jteam {
+            label="Jeff's Team"
+            bonds -> arunk;
+            bonds -> albert;
+            bonds -> briant;
+            bonds -> larryf;
+            bonds -> yoshi;
+            bonds -> grantg;
+            bonds -> michel;
+            bonds -> fredc;
+        }
+}
+
+//
+// relationships
+//
+}
+

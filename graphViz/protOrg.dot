@@ -1,0 +1,85 @@
+digraph protOrg {
+label="Protocols Team"
+rankdir=LR
+//
+// people
+//
+
+daveD  [label="David Donatelli"];
+daveS [label="David Scott"];
+bill [ label="Bill Philbin"];
+wayj  [label="Wayland Jeong"];
+donH [label="Don Hopkins"];
+michaelr [ label="Michael W Roberts" ];
+subgraph cluster_team {
+    bretm [ label="Bret A McKee" ];
+    chiti [ label="Chi-Ti Chen" ];
+    subgraph cluster_mgrs {
+        label="Managers";
+        daveD -> daveS -> bill ->wayj ;
+        wayj -> donH -> michaelr ;
+    }
+    subgraph cluster_kern {
+    rank=source;
+        label="Custom Kernel";
+        dougp [ label="Doug Potts" ];
+    }
+    subgraph cluster_pml {
+        label="PML";
+        tomh [ label="Tom Hromatka"];
+        brandons [ label="Brandon Schaffer" ];
+        joses [ label="Jose Sousa" ];
+        brianz [ label="Brian Zimpfer"];
+    }
+    subgraph cluster_vds {
+        label="VDSi";
+        rosellef [ label="Roselle N Fernandez" ];
+        cassieh [ label="Cassie Helms" ];
+    }
+    //subgraph cluster_gui {
+        //label="UI improvements";
+        //rynak [ label="Ryan Keppel" ];
+    //}
+    subgraph cluster_ph {
+        label="persistent handles";
+        mattd [ label="Matthew B Dumm" ];
+        santanug [ label="Santanu Ghosh" ];
+        rabikumars [ label="Rabikumar Shaw" ];
+    }
+
+    subgraph cluster_mc {
+        label="Multi-channel"
+        steved [ label="Steve Douglas" ];
+        moorthy [ label="Moorthy MM" ];
+    }
+    subgraph cluster_perf {
+        label="Performance";
+        vinode [ label="Vinod Eswaraprasad" ];
+        veenaj [ label="Veena Joshua" ];
+        bretm -> vinode;
+        bretm -> veenaj;
+    }
+    lances [ label="Lance Swift" ];
+    vasu [ label="Vasu Thirumalai" ];
+    rameshc [ label="Ramesh Kumar Chaurasia" ];
+}
+
+//
+// relationships
+//
+michaelr -> tomh;
+michaelr -> joses;
+michaelr -> brianz;
+michaelr -> brandons;
+michaelr -> cassieh;
+michaelr -> rosellef;
+donH -> bretm;
+donH -> chiti;
+donH -> dougp;
+donH -> steved;
+donH -> mattd;
+donH -> lances;
+donH -> vasu;
+donH -> rameshc;
+}
+

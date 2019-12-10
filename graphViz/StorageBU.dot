@@ -1,0 +1,190 @@
+digraph Storage {
+label="Storage Business Units"
+//rankdir=LR
+//
+// people
+//
+subgraph cluster_info {
+    rank="source";
+    note [label="Business entity nodes are click-able" shape="plaintext"];
+    be [label="Business entity"];
+    pl [label="People" shape="rectangle"];
+}
+eg [label="Enterprise Group"
+    URL="http://intranet.hp.com/eg/main/Pages/index.aspx"];
+hpst [label="HP Storage"
+      URL="http://intranet.hp.com/eg/main/storage/Pages/index.aspx"];
+ddu [label="Data Center Development Unit"
+     URL="http://intranet.hp.com/tsg/WW2/swd/Pages/DevelopmentUnits.aspx#1"];
+udu [label="Utility Development Unit"
+     URL="http://intranet.hp.com/tsg/WW2/swd/Pages/DevelopmentUnits.aspx#2"];
+vdu [label="Virtual Development Unit"
+     URL="http://intranet.hp.com/tsg/WW2/swd/Pages/DevelopmentUnits.aspx#3"];
+msdu [label="Management & Solutions Development Unit"
+      URL="http://intranet.hp.com/tsg/WW2/swd/Pages/DevelopmentUnits.aspx#4"];
+p4k [label="P4000"
+     URL="http://intranet.hp.com/tsg/ww3/StorageSalesPortal/Pages/HPStoreVirtualStorage.aspx"];
+x9k [label="X9000"
+     URL="http://intranet.hp.com/tsg/ww3/StorageSalesPortal/Pages/HPStoreAllStorage.aspx"];
+plat [label="Platform"];
+prOp [label="Product Ops"];
+supt [label="Support"];
+subgraph eggr {
+    rank="same";
+    eg -> billV;
+}
+eg -> hpst;
+subgraph hpstgr {
+    rank="same";
+    hpst -> daveS;
+}
+hpst -> ddu;
+hpst -> udu;
+hpst -> vdu;
+hpst -> msdu;
+ddu -> neMac;
+udu -> pesl;
+subgraph vdugr {
+    rank="same";
+    vdu -> bill;
+}
+msdu -> jemi;
+vdu -> p4k;
+vdu -> x9k;
+vdu -> plat;
+vdu -> prOp;
+vdu -> supt;
+billV  [label="Bill Veghte" shape="rectangle"];
+daveS [label="David Scott" shape="rectangle"];
+bill [ label="Bill Philbin" shape="rectangle"];
+pesl [label="Pete Slocum" shape="rectangle"];
+jemi [label="Jennifer Millier" shape="rectangle"];
+//neMac [label="Neil MacDonald" shape="rectangle"];
+donH [label="Don Hopkins" shape="rectangle"];
+michaelr [ label="Michael W Roberts" shape="rectangle" ];
+bretm [ label="Bret A McKee" shape="rectangle" ];
+chiti [ label="Chi-Ti Chen" shape="rectangle" ];
+wayj [ label="Wayland Jeong" shape="rectangle"];
+andsp [ label="Andrew Sparkes" shape="rectangle"];
+alsltr [ label="Al Slater" shape="rectangle"];
+siPel [label="Simon Pelly" shape="rectangle"];
+hurat [label="Hugh Rattray" shape="rectangle"];
+trhn [label="Tracey Hains" shape="rectangle"];
+ianRu [label="Ian Russell" shape="rectangle"];
+ianbk [label="Ian Baker" shape="rectangle"];
+pecmbl [label="Pete Camble" shape="rectangle"];
+chpwr [label="Chris Powers" shape="rectangle"];
+mkFle [label="Mark Fleischhauer" shape="rectangle"];
+stFth [label="Stan Feather" shape="rectangle"];
+mlsh [label="Milan Shetti" shape="rectangle"];
+hlWd [label="Hal Woods" shape="rectangle"];
+neJhn [label="Neil Johnson" shape="rectangle"];
+chMtn [label="Chris Martin" shape="rectangle"];
+mrMa [label="Martin Mathias" shape="rectangle"];
+rmDk [label="Roman Duka" shape="rectangle"];
+ptWh [label="Patti White" shape="rectangle"];
+ryEv [label="Rhys Evans" shape="rectangle"];
+vaBv [label="Val Bogdanov" shape="rectangle"];
+//mukl [label="Mukul Kotwani" shape="rectangle"];
+crnu [label="Craig Nunes" shape="rectangle"];
+paos [label="Patrick Osborne" shape="rectangle"];
+stba [label="Steve Bacon" shape="rectangle"];
+tsVq [label="Tessa Velasquez" shape="rectangle"];
+lryMar [label="Larry Marsan" shape="rectangle"];
+blTr [label="Bill Terrell" shape="rectangle"];
+chdel [label="Chris Del Signore" shape="rectangle"];
+subbi [label="Subramanya Mudigere (Subbi)" shape="rectangle"];
+ahka [label="Ahmad Kassak" shape="rectangle"];
+kakt [label="Kari Kechter" shape="rectangle"];
+mkst [label="Mike Stallings" shape="rectangle"];
+mkhd [label="Mark Harding" shape="rectangle"];
+mtmg [label="Martin Mennig" shape="rectangle"];
+knmg [label="Kent Montgomery" shape="rectangle"];
+dgpt [label="Doug Potts" shape="rectangle"];
+lnsw [label="Lance Swift" shape="rectangle"];
+mtdm [label="Matt Dumm" shape="rectangle"];
+rblk [label="Rob Lucke" shape="rectangle"];
+plev [label="Paul Evertson" shape="rectangle"];
+stdg [label="Steve Douglas" shape="rectangle"];
+vsth [label="Vasu Thirumalai" shape="rectangle"];
+subgraph mgrs {
+        label="Managers";
+        billV -> daveS -> bill ->wayj ;
+        daveS -> chpwr;
+        daveS -> mlsh;
+        daveS -> crnu;
+        subgraph cluster_pm {
+            label="Product Management";
+            crnu -> paos -> stba;
+        }
+        subgraph cluster_ct {
+            label="CTO";
+            mlsh -> hlWd -> neJhn;
+        }
+        subgraph cluster_lt {
+            label="LTFS";
+            chpwr -> mkFle -> stFth;
+            mkFle -> chMtn;
+        }
+        bill -> ahka;
+        bill -> andsp;
+        bill -> blTr;
+        bill -> chdel;
+        bill -> lryMar;
+        bill -> ptWh;
+        bill -> subbi;
+        bill -> tsVq;
+        wayj -> donH -> michaelr ;
+        subgraph cluster_qa {
+            label="QA";
+            ptWh -> kakt;
+            ptWh -> mkst -> mkhd;
+            ptWh -> ryEv -> vaBv;
+            mkhd -> mtmg;
+            mkhd -> knmg;
+        }
+        subgraph cluster_no {
+        label="Catalyst";
+        andsp -> alsltr;
+        andsp -> siPel;
+        andsp -> ianRu -> ianbk -> pecmbl;
+        andsp -> hurat -> trhn;
+        ianRu -> mrMa -> rmDk;
+        }
+}
+subgraph cluster_team {
+    label="mwr"
+    subgraph cluster_pml {
+        label="PML";
+        tomh [ label="Tom Hromatka" shape="rectangle"];
+        brandons [ label="Brandon Schaffer"  shape="rectangle"];
+        joses [ label="Jose Sousa"  shape="rectangle"];
+        brianz [ label="Brian Zimpfer" shape="rectangle"];
+    }
+    subgraph cluster_vds {
+        label="VDSi";
+        rosellef [ label="Roselle N Fernandez"  shape="rectangle"];
+        cassieh [ label="Cassie Helms"  shape="rectangle"];
+    }
+}
+
+//
+// relationships
+//
+michaelr -> tomh;
+michaelr -> joses;
+michaelr -> brianz;
+michaelr -> brandons;
+michaelr -> cassieh;
+michaelr -> rosellef;
+donH -> bretm;
+donH -> chiti;
+donH -> dgpt;
+donH -> lnsw;
+donH -> mtdm;
+donH -> rblk;
+donH -> plev;
+donH -> stdg;
+donH -> vsth;
+}
+

@@ -1,0 +1,132 @@
+digraph mwrOrg {
+concentrate=true
+label="Protocol"
+rankdir=LR
+//
+// people
+//
+
+bill [ label="Bill Philbin"];
+wayj [ label="Wayland Jeong"];
+
+rsant [label="Rich Santos" style="filled" color="grey"];
+michaelr [ label="Michael W Roberts" style="filled" color="pink" ];
+mattd [label="Matt Dumm"];
+//lance [label="Lance Swift"];
+rchamb [label="Ron Chambers"];
+michaelh [label="Michael Haeuptle"];
+carlb [label="Carl Bader"];
+nishpr [label="Nishanth Prakash"];
+nitipr [label="Nitin Prakash"];
+stDg [label="Steve Douglas"];
+garPh [label="Garrett Phoonswadi"];
+todd [label="Todd Spencer" style="filled" color="mediumpurple1" ];
+plEv [label="Paul Evertson"];
+matg [label="Matt Glover"];
+nandesh [label="Nandesh Palanisamy" color="gold"];
+daven [label="David Noveck" color="gold"];
+justinV [label="Justin Venegas"];
+jonH [label="Jonathan Hittle"];
+tomerm [label="Tomer Meshorer"];
+ziadm [label="Ziad Matloub"];
+kyleb [label="Kyle Barry"];
+kylep [label="Kyle Poirier" color="gold"];
+rosellef [ label="Roselle N Fernandez" ];
+charlie [ label="Charlie Wahlquist" ];
+brianz [ label="Brian Zimpfer"];
+manish [label="Manish Goel"];
+neri [label="Antonio Neri"];
+meg [label="Meg Whitman"];
+
+meg -> neri -> manish;
+manish -> bill ->wayj ;
+wayj -> rsant ;
+subgraph cluster_mgmnt {
+    label="Upper management";
+    neri;
+    meg;
+subgraph cluster_strmgt {
+    label="Storage Upper management";
+    bill;
+    wayj;
+    manish;
+    }
+}
+subgraph cluster_prot {
+        label="File & Dev";
+        subgraph cluster_local {
+        label="section";
+        rsant -> michaelr ;
+        rsant -> todd;
+        rsant -> daven;
+        rsant -> nandesh;
+        rsant -> plEv;
+        rsant -> michaelh;
+        rsant -> nishpr;
+        rsant -> nitipr;
+        subgraph cluster_Andover {
+            label="Andover";
+            color="gold";
+            daven;
+            nandesh;
+        }
+        subgraph cluster_perf {
+            label="Performance";
+            color="brown";
+            plEv;
+        }
+        }
+        subgraph cluster_todd {
+            label="Todd";
+            color="purple4";
+            carlb;
+            jonH;
+            mattd;
+            charlie;
+            justinV;
+            kylep;
+            subgraph cluster_bldAcl {
+             label="Build";
+             color="red";
+             ziadm;
+             matg;
+            }
+        }
+        subgraph cluster_mwr {
+            label="Michael";
+            color="pink";
+            kyleb;
+            brianz;
+            tomerm;
+            rosellef;
+            stDg;
+            rchamb;
+            subgraph cluster_inter {
+             label="Interns";
+             color="green";
+             garPh;
+            }
+        }
+    //
+    // relationships
+    //
+    todd -> jonH;
+    todd -> matg;
+    todd -> mattd;
+    todd -> ziadm;
+    todd -> charlie;
+    todd -> justinV;
+    todd -> kylep;
+    todd -> carlb;
+
+    michaelr -> kyleb;
+    michaelr -> brianz;
+    michaelr -> tomerm;
+    michaelr -> rosellef;
+    michaelr -> garPh;
+    michaelr -> stDg;
+    michaelr -> rchamb;
+}
+
+}
+

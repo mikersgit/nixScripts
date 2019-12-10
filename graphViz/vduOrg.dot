@@ -1,0 +1,174 @@
+digraph vduOrg {
+label="vdu"
+rankdir=LR
+//
+// people
+//
+
+billV  [label="Bill Veghte"];
+daveS [label="David Scott"];
+bill [ label="Bill Philbin"];
+    wayj [ label="Wayland Jeong" color=green];
+        donH [label="Don Hopkins" color=blue];
+            michaelr [ label="Michael W Roberts" ];
+                tomh [ label="Tom Hromatka"];
+                brandons [ label="Brandon Schaffer" ];
+                joses [ label="Jose Sousa" ];
+                brianz [ label="Brian Zimpfer"];
+                rosellef [ label="Roselle N Fernandez" ];
+                cassieh [ label="Cassie Helms" ];
+            bretm [ label="Bret A McKee" ];
+            chiti [ label="Chi-Ti Chen" ];
+        mukl [label="Mukul Kotwani"];
+        sopk [label="Sonny Pak"];
+        davk [label="David Koury"];
+        dinv [label="Dinesh Venkatesh"];
+        jomc [label="Joann McIntyre"];
+        lnth [label="Lincoln Thomas"];
+        mkgn [label="Mike Gaines"];
+        mksp [label="Mike Spitzer"];
+        snst [label="Sandeep Seth"];
+        srbd [label="Sarah Belden"];
+        tome [label="Tomer Meshorer"];
+        vina [label="Vivek Nambiar"];
+    andsp [ label="Andrew Sparkes"];
+        alsltr [ label="Al Slater"];
+        siPel [label="Simon Pelly"];
+        ianRu [label="Ian Russell"];
+            jnmac [label="John Mackelden"];
+                ptkg [label="Pete King"];
+        ianbk [label="Ian Baker"];
+        mrMa [label="Martin Mathias"];
+        pecmbl [label="Pete Camble"];
+    ptWh [label="Patti White" color=red];
+        ryEv [label="Rhys Evans"];
+        anta [label="Andrea Lucy Tanner"];
+        chmil [label="Chris Miller"];
+        drydx [label="Daryl Decroix"];
+        dusm [label="Duane Smith"];
+        irby [label="Irina Boyko"];
+        jmbk [label="James A Beck"];
+        jebnd [label="Jeff Bonds"];
+        krkt [label="Kari Kechter"];
+        mrcvr [label="Marilise Cover"];
+        mkdil [label="Mark Dillon"];
+        mihy [label="Michael D Henry"];
+        mistg [label="Mike Stallings"];
+        padoy [label="Pat J Doyle"];
+        saurs [label="Savitha S Urs"];
+        sthey [label="Steve Heye"];
+        surai [label="Sudhir Raina"];
+        vnsur [label="Vinitha Sura"];
+    ahkas [label="Ahmad Kassak"];
+    billt [label="Bill Terrll"];
+    chdel [label="Chris DelSignore"];
+    lrmar [label="Larry Marsan"];
+
+    sumud [label="Subi Mudigere"];
+    tevel [label="Tessa Velasquez"];
+        ancr [label="Andrea Crispe"];
+        dncl [label="Donald Clark"];
+        srwk [label="Sara Weeks"];
+
+hurat [label="Hugh Rattray"];
+trhn [label="Tracey Hains"];
+neMac [label="Neil MacDonald"];
+chpwr [label="Chris Powers"];
+mkFle [label="Mark Fleischhauer"];
+stFth [label="Stan Feather"];
+mlsh [label="Milan Shetti"];
+hlWd [label="Hal Woods"];
+neJhn [label="Neil Johnson"];
+chMtn [label="Chris Martin"];
+rmDk [label="Roman Duka"];
+vaBv [label="Val Bogdanov"];
+crnu [label="Craig Nunes"];
+paos [label="Patrick Osborne"];
+stba [label="Steve Bacon"];
+subgraph mgrs {
+        label="Managers";
+        billV -> daveS -> bill;
+        daveS -> neMac;
+        daveS -> mlsh;
+        daveS -> crnu -> paos -> stba;
+        subgraph cluster_ct {
+            label="CTO";
+            mlsh -> hlWd -> neJhn;
+        }
+        subgraph cluster_lt {
+            label="LTFS";
+            neMac -> chpwr -> mkFle -> stFth;
+            mkFle -> chMtn;
+        }
+        subgraph cluster_store {
+            label="Store*";
+            bill -> wayj;
+            bill -> andsp;
+            bill -> ptWh;
+            bill -> ahkas;
+            bill -> billt;
+            bill -> chdel;
+            bill -> lrmar;
+            bill -> sumud;
+            bill -> tevel;
+        } 
+        wayj -> donH -> michaelr [color=green] ;
+        subgraph cluster_qa {
+            rankdir=TB
+            label="QA";
+            color=red;
+            ptWh -> ryEv -> vaBv [color=red];
+            ptWh -> anta [color=red];
+            ptWh -> chmil [color=red];
+            ptWh -> drydx [color=red];
+            ptWh -> dusm [color=red];
+            ptWh -> irby [color=red];
+            ptWh -> jmbk [color=red];
+            ptWh -> jebnd [color=red];
+            ptWh -> krkt [color=red];
+            ptWh -> mrcvr [color=red];
+            ptWh -> mkdil [color=red];
+            ptWh -> mihy [color=red];
+            ptWh -> mistg [color=red];
+            ptWh -> padoy [color=red];
+            ptWh -> saurs [color=red];
+            ptWh -> sthey [color=red];
+            ptWh -> surai [color=red];
+            ptWh -> vnsur [color=red];
+        }
+        subgraph cluster_no {
+        label="Catalyst";
+        bill -> andsp;
+        wayj -> mukl [color=green];
+        andsp -> alsltr;
+        andsp -> siPel;
+        andsp -> ianRu -> ianbk -> pecmbl;
+        andsp -> hurat -> trhn;
+        ianRu -> mrMa -> rmDk;
+        ianRu -> jnmac -> ptkg;
+        }
+}
+subgraph cluster_team {
+    subgraph cluster_pml {
+        label="PML";
+        tomh; brandons; joses; brianz;
+    }
+    subgraph cluster_vds {
+        label="VDSi";
+        rosellef; cassieh;
+    }
+}
+
+//
+// relationships
+//
+michaelr -> tomh;
+michaelr -> joses;
+michaelr -> brianz;
+michaelr -> brandons;
+michaelr -> cassieh;
+michaelr -> rosellef;
+donH -> bretm;
+donH -> chiti;
+}
+

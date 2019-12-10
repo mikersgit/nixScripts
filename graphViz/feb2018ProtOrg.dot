@@ -1,0 +1,107 @@
+digraph FPprotOrg {
+label="FP Team"
+rankdir=LR
+//
+// people
+//
+
+Alain  [label="Alain Andreoli"];
+Milan [label="Milan Shetti"];
+PatO [ label="Patrick Osborne"];
+Andy  [label="Andrew Sparkes"];
+richard [label="Richard Santos"];
+michaelr [ label="Michael W Roberts" ];
+olga [ label="Olga Revsin" ];
+irina [ label="Irina Boyko" ];
+subgraph FP {
+    subgraph cluster_mgrs {
+        label="Managers";
+        Alain -> Milan -> PatO -> Andy ;
+        Andy -> richard -> olga ;
+        richard -> irina;
+    }
+    subgraph cluster_perf{
+    rank=source;
+        label="performance";
+        paul [ label="Paul Evertson" ];
+    }
+    subgraph cluster_FPQA{
+    rank=source;
+        label="FPQA";
+        carl [ label="Carl B." ];
+        kyle [ label="Kyle Poirier" ];
+        bryan [ label="Bryan McDade" ];
+        calvin [ label="Calvin Chuang" ];
+        fiorillo [ label="John Fiorillo" ];
+        steveh [ label="Steve Houle" ];
+        timb [ label="Tim Beaudin" ];
+        //irina -> carl;
+    }
+    subgraph cluster_authCli{
+    rank=source;
+        label="AAUM CLI PML";
+        gabi [ label="Gabi" ];
+        anne [ label="Anne Pavkovic" ];
+        eric [ label="Eric Champagne" ];
+        bens [ label="Ben Simpson" ];
+        ganesh [ label="Ganesh Ramani" ];
+        hugo [ label="Hugo Kiehl" ];
+        jeong [ label="Jeong Goo Lee" ];
+        leo [ label="Leonid Ebril" ];
+        sugan [ label="Suganthi Mani" ];
+        yuri [ label="Yuri Kirichok" ];
+        //olga -> gabi;
+    }
+    subgraph cluster_arch{
+    rank=source;
+        label="architecture";
+        nandesh [ label="Nandesh Palanisamy" ];
+        mattb [ label="Matt Bondurant" ];
+    }
+    subgraph cluster_SMB {
+        label="SMB";
+        rosellef [ label="Roselle N Fernandez" ];
+        mattd [ label="Matthew B Dumm" ];
+        steved [ label="Steve Douglas" ];
+        larry [ label="Larry Fenske" ];
+        ron [ label="Ron Chambers" ];
+        jonh [ label="Jonathan Hittle" ];
+        michaelw [ label="Michael Whitehill" ];
+        moorthy [ label="Moorthy MM" ];
+        santanug [ label="Santanu Ghosh" ];
+    }
+
+}
+
+//
+// relationships
+//
+olga -> gabi;
+olga -> anne;
+olga -> eric;
+olga -> bens;
+olga -> ganesh;
+olga -> hugo;
+olga -> jeong;
+olga -> leo;
+olga -> sugan;
+olga -> yuri;
+irina -> carl;
+irina -> kyle;
+irina -> bryan;
+irina -> calvin;
+irina -> steveh;
+irina -> fiorillo;
+irina -> timb;
+michaelr -> mattd;
+michaelr -> rosellef;
+michaelr -> steved;
+michaelr -> larry;
+michaelr -> jonh;
+michaelr -> ron;
+michaelr -> michaelw;
+richard -> paul;
+richard -> michaelr;
+richard -> nandesh;
+richard -> mattb;
+}

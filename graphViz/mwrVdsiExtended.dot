@@ -1,0 +1,109 @@
+digraph mwrOrg {
+label="Team"
+//rankdir=LR
+//
+// people
+//
+
+billV  [label="Bill Veghte"];
+daveS [label="David Scott"];
+bill [ label="Bill Philbin"];
+    wayj [ label="Wayland Jeong"];
+        donH [label="Don Hopkins"];
+        mukl [label="Mukul Kotwani"];
+        sopk [label="Sonny Pak"];
+    andsp [ label="Andrew Sparkes"];
+    ptWh [label="Patti White"];
+    ahkas [label="Ahmad Kassak"];
+    billt [label="Bill Terrll"];
+    chdel [label="Chris DelSignore"];
+    lrmar [label="Larry Marsan"];
+    sumud [label="Subi Mudigere"];
+    tevel [label="Tessa Velasquez"];
+
+michaelr [ label="Michael W Roberts" ];
+bretm [ label="Bret A McKee" ];
+chiti [ label="Chi-Ti Chen" ];
+alsltr [ label="Al Slater"];
+siPel [label="Simon Pelly"];
+hurat [label="Hugh Rattray"];
+trhn [label="Tracey Hains"];
+ianRu [label="Ian Russell"];
+ianbk [label="Ian Baker"];
+pecmbl [label="Pete Camble"];
+neMac [label="Neil MacDonald"];
+chpwr [label="Chris Powers"];
+mkFle [label="Mark Fleischhauer"];
+stFth [label="Stan Feather"];
+mlsh [label="Milan Shetti"];
+hlWd [label="Hal Woods"];
+neJhn [label="Neil Johnson"];
+chMtn [label="Chris Martin"];
+mrMa [label="Martin Mathias"];
+rmDk [label="Roman Duka"];
+ryEv [label="Rhys Evans"];
+vaBv [label="Val Bogdanov"];
+crnu [label="Craig Nunes"];
+paos [label="Patrick Osborne"];
+stba [label="Steve Bacon"];
+subgraph mgrs {
+        label="Managers";
+        billV -> daveS -> bill;
+        daveS -> neMac;
+        daveS -> mlsh;
+        daveS -> crnu -> paos -> stba;
+        subgraph cluster_ct {
+            label="CTO";
+            mlsh -> hlWd -> neJhn;
+        }
+        subgraph cluster_lt {
+            label="LTFS";
+            neMac -> chpwr -> mkFle -> stFth;
+            mkFle -> chMtn;
+        }
+        bill -> wayj;
+        bill -> ptWh;
+        wayj -> donH -> michaelr ;
+        subgraph cluster_qa {
+            label="QA";
+            ptWh -> ryEv -> vaBv;
+        }
+        subgraph cluster_no {
+        label="Catalyst";
+        bill -> andsp;
+        wayj -> mukl;
+        andsp -> alsltr;
+        andsp -> siPel;
+        andsp -> ianRu -> ianbk -> pecmbl;
+        andsp -> hurat -> trhn;
+        ianRu -> mrMa -> rmDk;
+        }
+}
+subgraph cluster_team {
+    subgraph cluster_pml {
+        label="PML";
+        tomh [ label="Tom Hromatka"];
+        brandons [ label="Brandon Schaffer" ];
+        joses [ label="Jose Sousa" ];
+        brianz [ label="Brian Zimpfer"];
+    }
+    subgraph cluster_vds {
+        label="VDSi";
+        rosellef [ label="Roselle N Fernandez" ];
+        cassieh [ label="Cassie Helms" ];
+    }
+}
+
+//
+// relationships
+//
+michaelr -> tomh;
+michaelr -> joses;
+michaelr -> brianz;
+michaelr -> brandons;
+michaelr -> cassieh;
+michaelr -> rosellef;
+donH -> bretm;
+donH -> chiti;
+}
+
