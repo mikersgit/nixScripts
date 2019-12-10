@@ -1,0 +1,11 @@
+digraph flowchart {
+ node [ shape="box" ] ;
+ b [ shape="diamond" ] ;
+ a -> b  ;
+ b -> c ;
+ b -> d [weight="100" samehead="d"];
+ c -> d [samehead="d" ];
+
+ { rank=same; a c ; }
+} ;
+

@@ -1,0 +1,11 @@
+digraph 41695 {
+ node [ shape="box" ] ;
+ 41695 [label="41695 Master bug" shape="diamond" ] ;
+ 48217 [label="48217 Atlas target"];
+ 48704 [label="48704 Astra target"];
+ 43158 [label="43158 platform Astra bug(closed)" style=filled color=pink];
+ 41695 -> 48217 ;
+ 41695 -> 48704 ;
+ 41695 -> 43158 ;
+} ;
+

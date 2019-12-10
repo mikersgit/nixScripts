@@ -1,0 +1,25 @@
+
+digraph cycle {
+label="exinc"
+//
+// pages
+//
+x9kRevP [label="X9000 reviews page"];
+wipRevP  [label="Wipro Reviews page"];
+subgraph {
+    rank="same"
+    ibRepRev [label="Ibrix Repl code and design"];
+    cifRev   [label="Cifs reviews"];
+    caseIns  [label="Code Rev Bug 11956"];
+    x9kRevrs [label="X9k Prim Reviewers"];
+}
+//
+// relationships
+//
+x9kRevP -> ibRepRev ;
+x9kRevP -> cifRev ;
+x9kRevP -> caseIns ;
+x9kRevP -> wipRevP ;
+x9kRevP -> x9kRevrs ;
+wipRevP -> x9kRevP ;
+}

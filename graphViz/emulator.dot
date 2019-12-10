@@ -1,0 +1,159 @@
+digraph emulator {
+    compound=true
+   label = "emulator"
+   node [ shape="box" ]
+   main -> vdsi_init [taillabel = "  1" color = "blue" ];
+   main -> vdsi_vds_subscribe_domain [taillabel = "  2" color = "red" ];
+   main -> vdsi_process_domain_io [taillabel = "  3" color = "green" ];
+   main -> vdsi_purge_cache [taillabel = "  4" color = "gold" ];
+   main -> vdsi_vds_unsubscribe_domain [taillabel = "  5" color = "black" ];
+   //
+   subgraph cluster_common {
+        clusterrank = local
+        label = "common"
+        close
+        free
+   }
+   subgraph cluster_serFD {
+        clusterrank = local
+        label = "Serialize and close"
+        list_for_each_safe 
+        close
+        list_del 
+        free 
+        SERIALIZE_GLOBAL_FD_CACHE -> global_event_queue__eq_thread -> pthread_mutex_lock; 
+        list_entry -> container_of; 
+        UNSERIALIZE_GLOBAL_FD_CACHE -> global_event_queue__eq_thread -> pthread_mutex_unlock; 
+    }
+   //
+   subgraph cluster_vinit {
+        clusterrank = local
+    label = vdsi_init 
+   vdsi_init -> lib_fini [label = "if iFD >= 0" color = "blue" ];
+   lib_fini -> close  [color = "blue"] ;
+   vdsi_init -> create_directory [label = "if iFD < 0" color = "blue" ];
+   vdsi_init -> open  [color = "blue"] ;
+   }
+   //
+   subgraph cluster_vvsubscr {
+        clusterrank = local
+        label = vdsi_vds_subscribe_domain 
+   vdsi_vds_subscribe_domain -> DOMAIN_2_MDIR [taillabel = "  1" color = "red"];
+   vdsi_vds_subscribe_domain -> create_directory [taillabel = "  2" color = "red"];
+   vdsi_vds_subscribe_domain -> event_queue_init [taillabel = "  3" color = "red"];
+   event_queue_init -> pthread_mutex_init [color = "red"];
+   event_queue_init -> pthread_cond_init [color = "red"];
+   event_queue_init -> INIT_LIST_HEAD [color = "red"];
+   event_queue_init -> pthread_create [color = "red"];
+   event_queue_init -> pthread_cond_broadcast [color = "red"];
+   event_queue_init -> free [color = "red"];
+   vdsi_vds_subscribe_domain -> add_subscription [taillabel = "  4" color = "red"];
+   vdsi_vds_subscribe_domain -> "ioctl-IBRIX_IOCTL_SUBSCRIBE" [taillabel = "  4" color = "red"];
+   }
+   //
+   subgraph cluster_vpd_io {
+        clusterrank = local
+        label = vdsi_process_domain_io
+   vdsi_process_domain_io -> "ioctl-IBRIX_IOCTL_POLL" [color = "green"];
+// vdsi_process_domain_io -> global_event_queue__eq_cb [color = "green"];
+   vdsi_process_domain_io -> vds_callback [color = "green"];
+   vds_callback -> get_callbacks [color = "green"];
+   vds_callback -> call_callbacks [color = "green"];
+   vds_callback -> vdsi_kernel_ack [color = "green"];
+   vdsi_process_domain_io -> enqueue_event [color = "green"];
+   enqueue_event -> pthread_mutex_lock  [color = "green"];
+   enqueue_event -> INIT_LIST_HEAD  [color = "green"];
+   enqueue_event -> list_add_tail  [color = "green"];
+   enqueue_event -> pthread_cond_signal  [color = "green"];
+   enqueue_event -> pthread_mutex_unlock [color = "green"];
+   vdsi_process_domain_io -> free [color = "green"];
+   }
+   //
+   subgraph cluster_vp_cache {
+        clusterrank = local
+        label = vdsi_purge_cache
+   vdsi_purge_cache -> SERIALIZE_GLOBAL_FD_CACHE  [lhead=cluster_serFD color = "gold"];
+   // SERIALIZE_GLOBAL_FD_CACHE -> global_event_queue__eq_thread -> pthread_mutex_lock [color = "gold"];
+   // vdsi_purge_cache -> list_for_each_safe  [color = "gold"];
+   // vdsi_purge_cache -> list_entry  [color = "gold"];
+   // list_entry -> container_of  [color = "gold"];
+   // vdsi_purge_cache -> close  [color = "gold"];
+   // vdsi_purge_cache -> list_del  [color = "gold"];
+   // vdsi_purge_cache -> free  [color = "gold"];
+   // vdsi_purge_cache -> UNSERIALIZE_GLOBAL_FD_CACHE  [color = "gold"];
+   // UNSERIALIZE_GLOBAL_FD_CACHE -> global_event_queue__eq_thread -> pthread_mutex_unlock [color = "gold"];
+   }
+   //
+   subgraph cluster_vv_unsubscr {
+         clusterrank = local
+        label = vdsi_vds_unsubscribe
+   vdsi_vds_unsubscribe_domain -> global_event_queue__eq_thread [color = "black"];
+   vdsi_vds_unsubscribe_domain -> event_queue_fini [color = "black"];
+   event_queue_fini -> pthread_cond_broadcast [color = "black"];
+   event_queue_fini -> free [color = "black"];
+   event_queue_fini -> pthread_mutex_destroy [color = "black"];
+   event_queue_fini -> pthread_cond_destroy [color = "black"];
+   vdsi_vds_unsubscribe_domain -> close [color = "black"];
+   }
+   subgraph cluster_emu_cb {
+        rank=max
+         clusterrank = local
+        label = "emulator callbacks"
+    emu_storage_object_session_start;
+    emu_storage_object_session_stop;
+    emu_create_storage_object -> vdsi_create_manifest [color = "purple"];
+        // vdsi_create_manifest -> INODE_ID_2_MPATH [color = "purple"];
+            // INODE_ID_2_MPATH -> li_get_root [color = "purple"];
+        // vdsi_create_manifest -> stat [color = "purple"];
+        // vdsi_create_manifest -> creat [color = "purple"];
+        // vdsi_create_manifest -> close [color = "purple"];
+    emu_delete_storage_object -> vdsi_remove_manifest [color = "purple"];
+        // vdsi_remove_manifest -> INODE_ID_2_MPATH [color = "purple"];
+        // vdsi_remove_manifest -> unlink [color = "purple"];
+    emu_delete_storage_object -> vdsi_kernel_ack [color = "purple"];
+        // vdsi_kernel_ack -> "ioctl-IBRIX_IOCTL_ACK" [color = "purple"];
+    emu_request_storage_object_write -> vdsi_open_by_id [color = "purple"];
+        // vdsi_open_by_id -> SERIALIZE_GLOBAL_FD_CACHE [color = "purple"];
+        // vdsi_open_by_id -> find_cache_entry [color = "purple"];
+            // find_cache_entry -> list_for_each [color = "purple"];
+            // find_cache_entry -> list_entry [color = "purple"];
+        // vdsi_open_by_id -> add_cache_entry [color = "purple"];
+        // vdsi_open_by_id -> UNSERIALIZE_GLOBAL_FD_CACHE [color = "purple"];
+    // emu_request_storage_object_write -> mmap [color = "purple"];
+    emu_request_storage_object_write -> vdsi_open_manifest_by_id [color = "purple"];
+        // vdsi_open_manifest_by_id -> SERIALIZE_GLOBAL_FD_CACHE [color = "purple"];
+        // vdsi_open_manifest_by_id -> find_cache_entry [color = "purple"];
+        // vdsi_open_manifest_by_id -> UNSERIALIZE_GLOBAL_FD_CACHE [color = "purple"];
+        // vdsi_open_manifest_by_id -> INODE_ID_2_MPATH [color = "purple"];
+        // vdsi_open_manifest_by_id -> open [color = "purple"];
+        // vdsi_open_manifest_by_id -> add_cache_entry [color = "purple"];
+    // emu_request_storage_object_write -> lseek [color = "purple"];
+    // emu_request_storage_object_write -> write [color = "purple"];
+    emu_request_storage_object_write -> vdsi_close_manifest [color = "purple"];
+        //vdsi_close_manifest -> SERIALIZE_GLOBAL_FD_CACHE [lhead=cluster_serFD color = "purple"];
+        // vdsi_close_manifest -> list_for_each_safe [color = "purple"];
+        // vdsi_close_manifest -> list_entry [color = "purple"];
+        // vdsi_close_manifest -> close [color = "purple"];
+        // vdsi_close_manifest -> list_del [color = "purple"];
+        // vdsi_close_manifest -> free [color = "purple"];
+        // vdsi_close_manifest -> UNSERIALIZE_GLOBAL_FD_CACHE [color = "purple"];
+    // emu_request_storage_object_write -> munmap [color = "purple"];
+    emu_request_storage_object_write -> vdsi_complete_storage_object_write [color = "purple"];
+        //vdsi_complete_storage_object_write -> vdsi_kernel_ack [color = "purple"];
+            // vdsi_kernel_ack -> "ioctl-IBRIX_IOCTL_ACK" [color = "purple"];
+    emu_request_storage_object_write -> vdsi_close [color = "purple"];
+        // vdsi_close -> SERIALIZE_GLOBAL_FD_CACHE [lhead=cluster_serFD color = "purple"];
+    emu_request_storage_object_read -> vdsi_open_manifest_by_id [color="purple"];
+    emu_request_storage_object_read -> vdsi_close_manifest [color="purple"];
+    emu_request_storage_object_read -> vdsi_complete_storage_object_read [color="purple"];
+    emu_request_storage_object_truncate -> vdsi_open_manifest_by_id [color="purple"];
+    emu_request_storage_object_truncate -> vdsi_close_manifest [color="purple"];
+    emu_request_storage_object_truncate -> vdsi_complete_storage_object_truncate [color="purple"];
+    emu_request_purge_range -> vdsi_complete_purge_range [color="purple"];
+    emu_request_flush_range -> vdsi_complete_flush_range [color="purple"];
+    emu_request_sync_range -> vdsi_open_manifest_by_id [color="purple"];
+    emu_request_sync_range -> vdsi_close_manifest [color="purple"];
+    emu_request_sync_range -> vdsi_complete_sync_range [color="purple"];
+    emu_request_bypass -> vdsi_complete_bypass [color="purple"];
+   }
+}

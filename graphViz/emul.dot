@@ -1,0 +1,31 @@
+digraph emul {
+labeljust="l";
+graph [ rankdir = "LR" ];
+vsc [label=\
+    "<f0>vdsi_session_container\
+    |<f1>int manifest_fd\
+    |<f2>vdsi_file_id_t file_id\
+    |<f3>void *vds_session_handle\
+    |<f4>TEMP vdsi_ev_data_t *ev_data"\
+    shape="record"];
+
+inode [label=\
+    "<f0>INODE_ID\
+    |<f1>IBR_NUM ibr_inum\
+    |<f2>IBR_POID ibr_poid"\
+    shape="record"];
+
+ied [label=\
+   "<f0>ibr_event_data\
+   |<f1>UInt64     event_id\
+   |<f2>INODE_ID   inode_id\
+   |<f3>UInt64     offset\
+   |<f4>UInt64     size\
+   |<f5>UInt32     event_type\
+   |<f6>UInt32     flags\
+   |<f7>UInt64     unused"\
+   shape="record"];
+
+vsc:f2 -> inode:f0;
+vsc:f4 -> ied:f0;
+}

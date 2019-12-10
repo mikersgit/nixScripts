@@ -1,0 +1,20 @@
+graph tmux {
+  //      t
+  subgraph clusterSession {
+    label = "Session" 
+    s
+    // a -- b [label = "ab"];
+    subgraph clusterWindow {
+      label = "Window" 
+      w1
+      w2
+      w3
+      subgraph clusterPane  {
+      label = "Pane" 
+      p1
+      p2
+      p3
+      }
+    }
+  }
+}

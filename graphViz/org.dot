@@ -1,0 +1,62 @@
+digraph org {
+label="VDS and VDSi"
+//
+// people
+//
+daveD  [label="David Donatelli"];
+daveS [label="David Scott"];
+bill [ label="Bill Philbin"];
+subgraph wd {
+    rank="same"
+    wayland [label="Wayland Jeong"];
+    daveSt  [label="Dave Stephenson"];
+}
+subgraph di {
+    rank="same"
+    donH [label="Don Hopkins"];
+    ian  [label="Ian Russell"];
+}
+subgraph cluster_vds {
+    label="VDS";
+    andy [label="Andy Nelson"];
+    daveF [label="Dave Falkinder"];
+    rich [label="Rich Mayo"];
+    graham [label="Graham Perry"];
+}
+subgraph cluster_vdsi {
+    label="VDSi";
+    ilya [label="Ilya Usvyatsky"];
+    subgraph cluster_rm {
+        style="dotted"
+        label=""
+        roselle [label="Roselle Fernandez"];
+        michael [label="Michael Roberts"];
+    }
+}
+subgraph cluster_NotOnVds {
+    rank="max";label="Not On VDS";
+    color="gray";style="dotted";
+    daveDo [label="Dave Donaghy" color="gray"];
+    johnB [label="John Butt" color="gray"];
+    rhiannon [label="Rhiannon Wright" color="gray"];
+    russell [label="Russell Monk" color="gray"];
+}
+//
+// relationships
+//
+daveD -> daveS -> bill -> wayland -> ian -> andy ;
+bill -> daveSt;
+daveSt -> donH;
+donH -> roselle;
+donH -> michael;
+andy:e -> roselle [label="on loan" style="dashed" arrowhead="open"];
+andy:e -> michael [style="dashed" arrowhead="open"];
+andy:s -> ilya;
+andy:s -> daveF;
+andy:s -> rich;
+andy:s -> graham;
+andy:w -> daveDo [color="gray"];
+andy:w -> johnB [color="gray"];
+andy:w -> rhiannon [color="gray"];
+andy:w -> russell [color="gray"];
+}

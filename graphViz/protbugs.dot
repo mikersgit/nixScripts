@@ -1,0 +1,40 @@
+digraph proto {
+	label = "Change Request (CR)  submission diagram.";
+	fontsize=20;
+	node [shape=diamond];
+		crType [label="New Feature?"];
+		crSubType [label="Has\nMASTER CR?"];
+		Tclosed [label="All targets\nclosed?"];
+		Mclosed [label="MASTER/feature\nclosed?"];
+	node [shape=oval];
+		{node [label="At release"] atrel0; atrel1;}
+		sub [label="Submit CR"];	
+	node [shape=square];
+		mwt [label="Make MASTER CR"];
+		mna [label="Make\nMASTER=NA"];
+		tgt [label="Make\ntarget release (backport)\nCRs that block MASTER"];
+		mso [label="MASTER\nstays open"];
+		cmb [label="Close\nMASTER"];
+	/* node [shape=tab];
+		attrs [label="create MASTER,\nthen blocking target release CR\nfor active releases"];
+	*/
+
+	/* { rank=same; mwt tgt;} */
+
+	sub -> crType;
+	crType -> mna [label="YES"];
+	crType -> crSubType [label="NO"];
+	crSubType -> mwt [label="NO"];
+	crSubType -> tgt [label="YES"];
+
+	mwt -> tgt ;
+	tgt -> atrel0 -> Tclosed;
+	/* mwt -> attrs [dir=back arrowtail=teecrow label=note]; */
+	Tclosed -> mso [label="NO"];
+	Tclosed -> cmb [label="YES"];
+	mso -> atrel0;
+
+	mna -> atrel1 -> Mclosed;
+	Mclosed -> mwt [label="NO"];
+	Mclosed -> cmb [label="YES"];
+}

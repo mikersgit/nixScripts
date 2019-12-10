@@ -1,0 +1,27 @@
+digraph setup {
+
+mh_mwr0_h -> config_mwr0_h [label=" 1 "];
+mh_mwr0_h -> b_mkibfs [label=" 2 "];
+b_mkibfs -> export_id;
+b_mkibfs -> makeseg;
+start -> sh_mwr0_h;
+sh_mwr0_h -> config_mwr0_h [label=" 1 "];
+sh_mwr0_h -> start_h [label=" 2 "];
+start_h -> rtool_defhost [label=" 1 "];
+start_h -> insmod [label="(2) ipfs1"] ;
+start_h -> insmod [label="(3) ibrix"] ;
+start_h -> rtool_debugTrace [label=" 4 "];
+start_h -> rtool_allocp [label=" 5 "];
+start_h -> mount [label=" 6 "];
+start_h -> rtool_startexp [label=" 7 "];
+restart -> nfs [label=" 1 "];
+restart -> stop [label=" 2 "];
+restart -> sh_mwr0_h [label=" 3 "];
+stop -> pkill [label=" 1 "];
+stop -> umount[label=" 2 "];
+stop -> rmmod [label="(3) ibrix"];
+stop -> rmmod [label="(4) ipfs1"];
+configure -> domain -> path;
+emulator -> domain_dir -> ParentPathToDir;
+}
+

@@ -1,0 +1,28 @@
+digraph file {
+    label="Windows originated file"
+    hpsmb[label="HP SMB"]
+    winw[label="Windows Client (Start)"]
+    winr[label="Windows Client"]
+    //posix[label="Posix Client"]
+    tw2n[label="Translate windows ACL to NFSv4"]
+    tn2w[label="Translate NFSv4 ACL to windows"]
+    asy[label="ACL Sync\nif needed"]
+    file0[shape=record label="<f0>file |<f1> SYSTEM.nfsv4_acl|<f2> SYSTEM.POSIX_[DEFAULT\|ACCESS]|<f3> WSYSTEM\nobsolete?\nremove?"]
+    //file1[shape=record label="<f0>file |<f1> SYSTEM.nfsv4_acl|<f2> SYSTEM.POSIX_[DEFAULT\|ACCESS]"]
+    { rank=min ;winw;winr; }
+    { rank=same ;tw2n;tn2w; }
+    { rank=max ;file0; }
+winw -> hpsmb [label="windows write" color=green]
+hpsmb -> asy [color=green]
+asy -> tw2n [color=green]
+asy -> file0:f2 [label=setfattr color=green]
+tw2n -> file0:f1 [label="setxattr" color=green]
+
+hpsmb -> winr [label="windows read" color=red]
+tn2w  -> asy   [color=red]
+asy  -> hpsmb   [color=red]
+file0:f2 -> asy  [label=getfattr color=red]
+file0:f1 -> tn2w  [label=getxattr color=red]
+
+explain [shape=box label="If the file originates via posix,\nthe nfsv4 hive is empty and only gets populated\nif a windows client writes the file."]
+}

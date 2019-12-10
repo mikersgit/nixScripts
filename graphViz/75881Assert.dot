@@ -1,0 +1,17 @@
+digraph 75881  {
+ node [ shape="box" ] ;
+ 75881 [label="75881 Master bug" shape="diamond" ] ;
+ 75774 [label="75774 duplicate master"];
+ 75880 [label="75880 Atlas 1.2 maint target"];
+ 75895 [label="75895 Atlas 1.2 maint target"];
+ 75896 [label="75896 Aurora target (wont fix)" color="grey"];
+ 75881 -> 75774 ;
+ 75881 -> 75880 ;
+ 75880 -> 75881 [label="blocks" color="red"] ;
+ 75774 -> 75881 [label="blocks" color="red"] ;
+ 75774 -> 75895 ;
+ 75774 -> 75896 ;
+ 75896 -> 75774 [label="blocks" color="red"] ;
+ 75895 -> 75774 [label="blocks" color="red"] ;
+} ;
+

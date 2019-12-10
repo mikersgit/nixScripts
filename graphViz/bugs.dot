@@ -1,0 +1,134 @@
+digraph bugs {
+/**
+* Graph of master bugs and the associated target release bugs.
+* - new sections can be added using mkBugsDot.sh
+* - master bugs can be removed with rmMstrBug.sh
+* Generate with 'dot bugs.dot -Tcmapx -obugs.map -Tsvg -obugs.svg'
+*/
+
+subgraph cluster_legend {
+    label="Legend";
+    MASTER [color="red" URL=""];
+    WONTF  [label="Won't fix" style="filled",color="grey88" URL=""];
+    FIX  [label="Fixed" style="filled",color="green" URL=""];
+    TRB  [label="Target Release\ncolor" URL=""];
+}
+
+node [URL="https://bugzilla.atlanta.hp.com:1181/bugzilla/show_bug.cgi?id=\N"];
+label="HP-SMB Bugs"
+
+// release streams
+55 [label="5.5" URL=""];
+56 [label="5.6" URL=""];
+60 [label="6.0" URL=""];
+61 [label="6.1" URL=""];
+"m60" [label="6.0 maint" style=filled,color="pink" URL=""];
+"m61" [label="6.1 maint" style=filled,color="pink2" URL=""];
+"m62" [label="6.2 maint" style=filled,color="pink3" URL=""];
+"m63" [label="6.3" style=filled,color="salmon" URL=""];
+T [label="trunk" style=filled,color="tomato" URL=""];
+
+subgraph rels {
+    rankdir = "TB";
+    55 -> 56 -> 60 -> 61 -> "m60" ->"m61" -> "m62" -> "m63" -> T;
+}
+
+// bug group 21626
+21626 [color="red" label="21626 externally managed"]; 
+25172 [label="25172" style=filled,color="green"]; //21626
+25173 [label="25173" style=filled,color="salmon"]; //21626
+25174 [label="25174" style=filled,color="pink3"]; //21626
+25562 [label="25562" style=filled,color="pink2"]; //21626
+25563 [label="25563" style=filled,color="grey88"]; //21626
+
+//tree 21626
+21626 ->25172 [color="green"];
+21626 ->25173 [color="green"];
+21626 ->25174 [color="green"];
+21626 ->25562 [color="green"];
+21626 ->25563 [color="green"];
+
+// Example of adding a note
+//anote [shape="plaintext"
+ //   label="Hyundai is seeing many SMB1\nissues with 6.1.2"
+  //  URL=""];
+//21xxx ->anote;
+
+//bug group 24651
+24651 [color="red" label="24651 Cannot add groups\nwith ( and & in the\nname to share admins"]; 
+24655 [label="24655" style=filled,color="pink2"]; //24651
+24654 [label="24654" style=filled,color="pink3"]; //24651
+25102 [label="25102" style=filled,color="salmon"]; //24651
+24653 [label="24653" style=filled,color="tomato"]; //24651
+//tree 24651
+24651 -> 24655 [color="green"];
+24651 -> 24654 [color="green"];
+24651 -> 25102 [color="green"];
+24651 -> 24653 [color="green"];
+
+//bug group 22783
+22783 [color="red"
+       label="22783 Cannot add users with\nnames beginning in 'n'"]; 
+22788 [label="22788" style=filled,color="grey88"]; //22783
+22787 [label="22787" style=filled,color="grey88"]; //22783
+22786 [label="22786" style=filled,color="pink2"]; //22783
+22785 [label="22785" style=filled,color="pink3"]; //22783
+25528 [label="25528" style=filled,color="salmon"]; //22783
+25527 [label="25527" style=filled,color="tomato"]; //22783
+//tree 22783
+22783 -> 22788 [color="green"];
+22783 -> 22787 [color="green"];
+22783 -> 22786 [color="green"];
+22783 -> 22785 [color="green"];
+22783 -> 25528 [color="green"];
+22783 -> 25527 [color="green"];
+
+subgraph M {
+ {rank=same ;
+    21626;
+    24651;
+    22783;
+ }
+}
+
+subgraph mg55{
+ {rank=same ;"55";
+    22788; //22783 5.5
+ }
+}
+subgraph mg63{
+ {rank=same ;"m63";
+    25173; //21626
+    25102; //24651
+    25528; //22783 6.3
+ }
+}
+subgraph mg62{
+ {rank=same ;"m62";
+    25174; //21626
+    24654; //24651
+    22785; //22783 6.2.M
+ }
+}
+subgraph mg61{
+ {rank=same ;"m61";
+    25562; //21626
+    24655; //24651
+    22786; //22783 6.1.M
+ }
+}
+subgraph mg60{
+ {rank=same ;"m60";
+    25563; //21626
+    22787; //22783 6.0.M
+ }
+}
+subgraph gT{
+ {rank=same ;T;
+    25172; //21626
+    24653; //24651
+    25527; //22783 T
+ }
+}
+
+} //end

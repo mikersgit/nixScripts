@@ -1,0 +1,184 @@
+digraph vdsi {
+labeljust="l";
+graph [ rankdir = "LR" ];
+unblk_complete_q [label="{<f0>Unblock complete queue|lck}\
+                |{<f1> sid_0 | evid_0}\
+                |{<f2> sid_1 | evid_1}" shape=record]
+
+subgraph cluster_kpe {
+        rank="same"
+        rankdir="TB"
+        clusterrank="local"
+        style="invis"
+        kernel_events
+        polling_thread
+
+        // global event queue
+        event_que [label =\
+            "{<f0>global event queue|lck}\
+            |<f1> ev0\
+            |<f2>ev1\
+            |<f3> ev2\
+            |<f4> ev3\
+            |<f5> ..."\
+            shape="record"];
+        kernel_events -> polling_thread
+        polling_thread -> event_que:n;
+}
+
+//funcion_seq [label=<<table>
+        //<tr><td port="fs1">while events</td></tr>
+        //<tr><td port="fs2">process</td></tr>
+        //</table>> shape="box"];
+//funcion_seq:fs1 -> funcion_seq:fs2 [label="loop"];
+//funcion_seq:fs2:e -> funcion_seq:fs1:e [label="loop"];
+
+// thread pool
+thread_pool [label=<<table>
+        <tr><td >Thread Pool</td><td>Ref Count</td></tr>
+        <tr><td color="black">a</td></tr>
+        <tr><td color="red"><font color="red">b</font></td></tr>
+        <tr><td color="green"><font color="green">c</font></td></tr>
+        <tr><td color="gold"><font color="gold">d</font></td></tr>
+        <tr><td color="purple"><font color="purple">...</font></td></tr>
+        </table>> shape="box"];
+
+// domain session record collection
+sess_collect [ label=\
+        "{<f0>session collection|sess_c_lck}\
+        |{<i0>inode|did|sid(0)|sid_lck|sid_blckd|<s0>sevq*[ ]}\
+        |{<i1>inode|did|sid(1)|sid_lck|sid_blckd|<s1>sevq*[ ]}\
+        |{<i2>inode|did|sid(2)|sid_lck|sid_blckd|<s2>sevq*[ ]}"
+        shape="record"];
+// per session events (instance 0)
+sess_evnt_que0 [label =\
+        "<f0> session event queue(0)\
+        |<f1>sess_ev1\
+        |<f2>sess_ev2\
+        |<f3>sess_ev3"\
+        shape="record"];
+// per session events (instance 0.1)
+sess_evnt_que01 [label =\
+        "<f0> session event queue(0.1)\
+        |<f1>sess_ev1.1\
+        |<f2>sess_ev2.1\
+        |<f3>sess_ev3.1"\
+        style="solid"\
+        shape="record"];
+// per session events (instance 1)
+sess_evnt_que1 [label =\
+        "<f0> session event queue(1)\
+        |<f1>sess_ev1\
+        |<f2>sess_ev2\
+        |<f3>sess_ev3"\
+        shape="record"];
+sess [ label = "1. sess_c_lck=true\n2. session exists?\n" shape = "diamond" ];
+iblkd [ label = "session is blocked ?" shape = "diamond"];
+
+crses [ label ="<f0>create session\
+               |<f1>1. Add to sess collect\
+               |<f2>2. sid_blckd=true\
+               |<f3>3. sess_c_lck=false\
+               |<f4>4. session_start_callback"\
+                shape = "record"];
+
+prsev [ nojustify="true" label ="<f0>process event\
+                |<f1>1. proc_ev(callback)\
+                |<f2>2. while next sess_ev != null\
+                |<f3>2.1   sid_lck=false\
+                |<f4>2.2   proc_ev(callback)\
+                |<f5>3. sid_blckd=false\
+                |<f6>4. sid_lck=false\
+                "\
+        shape = "record"];
+prsev:f4 -> prsev:f2 [ arrowhead="rvee" color="magenta"];
+
+enqev [ label = "<f0>enqueue event\
+                |<f1>sid_lck=false\
+        "\
+        shape = "record"];
+subgraph cluster_esc {
+        style="invis"
+        enqev
+        sess_collect
+}
+//
+subgraph cluster_seq {
+        style="invis"
+        sess_evnt_que0 
+        sess_evnt_que01
+        sess_evnt_que1 
+}
+//
+subgraph cluster_decide {
+        label = "Decide what to do w/ event"
+        clusterrank = "local"
+        rankdir = "TB";
+        sess;
+        iblkd;
+}
+//
+// threads dequeue events from global event queue
+//
+event_que:f1 -> sess:w [label = "a"]; 
+event_que:f2 -> sess:w [label = "b" color="red"];
+event_que:f3 -> sess:w [label = "c" color="green"];
+//
+// decide what to do with dequeued event
+//
+sess:e -> iblkd [taillabel = "YES "\
+                 headlabel="b  "\
+                 color="red"];
+sess -> iblkd [taillabel = "YES "\
+               headlabel="c  "\
+               color="green"];
+//
+// No session, so create session
+//
+sess -> crses:f0 [taillabel = "NO"\
+               headlabel="1. a  "];
+crses:f3 -> sess_collect:i0 [taillabel = "a  "];
+sess_collect:i0 -> prsev:f0 [taillabel = "a  "];
+prsev:f4 -> sess_evnt_que0:f1;
+sess_collect:s0 -> sess_evnt_que0:f0 [style="dashed" arrowhead="dot"];
+sess_collect:s0 -> sess_evnt_que01:f0 [label="Q0 stopping, enqueue 0.1"\
+                                       style="dashed"\
+                                       arrowhead="dot"];
+//
+// decide what to do with event on a session that exists
+//
+// is blocked
+//
+iblkd -> enqev:f0 [taillabel = "YES"\
+                headlabel="b  "\
+                color="red"];
+enqev:f0 -> sess_evnt_que0:f2 [taillabel = "b"\
+                            color="red"];
+
+enqev:f1 -> event_que:f4 [label="get next event" taillabel = "b  "\
+                                   color="red"];
+
+//
+// is not blocked
+//
+iblkd -> sess_collect:i1 [taillabel = "NO"\
+                          headlabel="c"\
+                          color="green"];
+sess_collect:i1 -> prsev:f0 [headlabel="c"\
+                          color="green"];
+prsev:f4 -> sess_evnt_que1:f1 [headlabel="c"\
+                            color="green"];
+sess_collect:s1 -> sess_evnt_que1:f0 [headlabel="c  "\
+                                      color="green"\
+                                      style="dashed"\
+                                      arrowhead="dot"];
+
+//
+// session event queue empty
+//
+//pnt [shape="point"];
+//prsev:f6 -> pnt;
+//pnt-> event_que:f5 ;
+//prsev:f6 -> event_que:f5 [label="get next event" ];
+
+}

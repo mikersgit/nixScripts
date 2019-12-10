@@ -1,0 +1,19 @@
+digraph config {
+   label = "config"
+   node [ shape="box" ]
+   main -> vdsi_get_vds_domain;
+   main -> vdsi_set_vds_domain;
+   main -> vdsi_drop_vds_domain;
+   vdsi_get_vds_domain ->  validate_path [taillabel = "  1"];
+   validate_path -> stat;
+   vdsi_get_vds_domain -> getxattr [taillabel = "  2"];
+   getxattr -> ibrix_getxattr ;
+   vdsi_set_vds_domain ->  validate_path [taillabel = "  1"];
+   validate_path -> stat;
+   vdsi_set_vds_domain -> setxattr [taillabel = "  2"];
+   setxattr -> ibrix_setxattr ;
+   vdsi_drop_vds_domain ->  validate_path [taillabel = "  1"];
+   validate_path -> stat;
+   vdsi_drop_vds_domain -> removexattr [taillabel = "  2"];
+   removexattr -> ibrix_removexattr ;
+   }
