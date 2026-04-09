@@ -1,0 +1,25 @@
+#!/bin/bash
+function listMnts(){
+  mount -t ext4 |grep mnt
+}
+img=$1
+mnt=$2
+if [[ $# < 2 ]]
+then
+   echo "USAGE: ${0} <image path> <mount pt path>"
+   listMnts
+   exit 1
+fi
+if file ${img} | grep -q ext4
+then
+   echo "tbone"
+   mount ${img} ${mnt}
+elif file ${img} |grep -q MBR
+then
+   echo "bbb"
+   mount -o offset=1048576 ${img} ${mnt}
+else
+   echo -e "\n=========== no mount type found for ${img} ===========\n"
+fi
+
+df -h

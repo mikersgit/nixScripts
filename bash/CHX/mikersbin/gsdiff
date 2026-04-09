@@ -1,0 +1,9 @@
+#!/bin/bash
+if [ x$1 = "x-f" ]
+then
+    slim=""
+    shift
+else
+    slim="s"
+fi
+git difftool -yx "/usr/bin/sdiff -${slim}w200" ${@}

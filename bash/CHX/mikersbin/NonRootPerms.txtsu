@@ -1,0 +1,9 @@
+700 104:0 var/cache/apt/archives/partial
+700 104:0 var/lib/apt/lists/partial
+755 33:0 var/lib/nginx/body
+755 33:0 var/lib/nginx/fastcgi
+755 33:0 var/lib/nginx/scgi
+755 33:0 var/lib/nginx/uwsgi
+600 109:0 var/lib/shellinabox/certificate.pem
+640 0:4 var/log/apt/term.log
+600 1001:100 var/spool/cron/crontabs/exodus

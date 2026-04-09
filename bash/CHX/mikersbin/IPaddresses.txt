@@ -1,0 +1,2 @@
+# file to source like '$. IPaddresses.txt' to get this in the shell for easy ssh/scp
+export ecenter=50.116.29.158

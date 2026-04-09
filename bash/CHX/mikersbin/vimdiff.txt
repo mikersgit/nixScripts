@@ -1,0 +1,23 @@
+# Navigating
+]c	Next difference
+[c	Previous difference
+
+# Editing
+do	Diff Obtain!
+	Pull the changes to the current file.
+dp	Diff Put!
+	Push the changes to the other file.
+
+# :diffupdate	Re-scan the files for differences.
+ZQ	Quit without checking changes
+
+# Folds
+zo / zO	Open
+zc / zC	Close
+za / zA	Toggle
+zv	Open folds for this line
+zM	Close all
+zR	Open all
+zm	Fold more (foldlevel += 1)
+zr	Fold less (foldlevel -= 1)
+zx	Update folds

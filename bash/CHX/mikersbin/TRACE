@@ -1,0 +1,3 @@
+#TLINES=15
+OPTS="-H"
+WAIT=5

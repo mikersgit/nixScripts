@@ -1,0 +1,4 @@
+#!/bin/bash
+# git checkout -B NewBranchName
+# git push
+git branch

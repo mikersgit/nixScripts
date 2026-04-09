@@ -1,0 +1,48 @@
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB1p0 GEN2 AS3",
+     "Address": "166.168.153.182:8080",
+     "CompanyLeaseSlashName": "Odessa Lab/TB1p0 GEN1 AS3"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB1p1 GEN2 Fuji",
+     "Address": "166.168.153.182:8081",
+     "CompanyLeaseSlashName": "Odessa Lab/TB1p1 GEN2 Fuji"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB2p0 GEN3 AS1",
+     "Address": "166.168.248.113:8080",
+     "CompanyLeaseSlashName": "Odessa Lab/TB2p0 GEN3 AS1"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB2p1 GEN3 AS3J",
+     "Address": "166.168.248.113:8081",
+     "CompanyLeaseSlashName": "Odessa Lab/TB2p1 GEN3 AS3J"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB3p0 Tbone AS3#1",
+     "Address": "166.168.248.114:8080",
+     "CompanyLeaseSlashName": "Odessa Lab/TB3p0 Tbone AS3#1"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB3p1 Tbone AS3#2",
+     "Address": "166.168.248.114:8081",
+     "CompanyLeaseSlashName": "Odessa Lab/TB3p1 Tbone AS3#2"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB4p1 Tbone Fuji",
+     "Address": "166.168.248.115:8081",
+     "CompanyLeaseSlashName": "Odessa Lab/TB4p1 Tbone Fuji"
+   },
+   {
+     "CompanyLease": "Odessa Lab",
+     "Name": "TB4p0 Tbone GA800",
+     "Address": "166.168.248.115:8080",
+     "CompanyLeaseSlashName": "Odessa Lab/TB4p0 Tbone GA800"
+   },

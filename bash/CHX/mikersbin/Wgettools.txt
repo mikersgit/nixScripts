@@ -1,0 +1,4 @@
+# Cut/Paste for controller needing to pull the image tools
+wget https://exodus.center/files/misc/dpkg/gettools.sh
+chmod a+x gettools.sh
+sudo ./gettools.sh

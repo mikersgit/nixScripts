@@ -1,0 +1,7 @@
+# replace "softwar name" with name of software like "Node.js"
+# have to be in admin terminal
+
+$app = Get-WmiObject -Class Win32_Product | Where-Object {
+  $_.Name -match "Software Name"
+}
+$app.Uninstall()

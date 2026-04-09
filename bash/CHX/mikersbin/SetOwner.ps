@@ -1,0 +1,57 @@
+# Execute in admin powershell
+# chown
+PS C:\cygwin64\home\20801921\src> $File="C:\cygwin64\home\20801921\src\monitorRoute.sh"
+PS C:\cygwin64\home\20801921\src> $NewOwner = "cx\20801921"
+PS C:\cygwin64\home\20801921\src> $acl = Get-Acl -Path $File
+PS C:\cygwin64\home\20801921\src> $OwnerObj = new-object System.security.Principal.NTAccount($NewOwner)
+PS C:\cygwin64\home\20801921\src> $acl.SetOwner($OwnerObj)
+PS C:\cygwin64\home\20801921\src> Set-Acl -Path $File -AclObject $acl
+
+
+
+
+
+
+Certainly! Changing the owner of a file in PowerShell can be done using the Set-ACL cmdlet along with Get-ACL and New-Object. Below are three alternatives to achieve this:
+
+Alternative 1: Using Set-ACL and New-Object
+Copy the code
+# Define the file path and new owner
+$filePath = "C:\path\to\your\file.txt"
+$newOwner = "DOMAIN\NewOwner"
+
+# Get the current ACL of the file
+$acl = Get-Acl -Path $filePath
+
+# Create a new owner object
+$owner = New-Object System.Security.Principal.NTAccount($newOwner)
+
+# Set the owner in the ACL
+$acl.SetOwner($owner)
+
+# Apply the new ACL to the file
+Set-Acl -Path $filePath -AclObject $acl
+
+Alternative 2: Using icacls Command
+Copy the code
+# Define the file path and new owner
+$filePath = "C:\path\to\your\file.txt"
+$newOwner = "DOMAIN\NewOwner"
+
+# Use icacls to change the owner
+icacls $filePath /setowner $newOwner /T /C
+
+Alternative 3: Using Invoke-Expression with icacls
+Copy the code
+# Define the file path and new owner
+$filePath = "C:\path\to\your\file.txt"
+$newOwner = "DOMAIN\NewOwner"
+
+# Construct the icacls command
+$command = "icacls $filePath /setowner $newOwner /T /C"
+
+# Execute the command
+Invoke-Expression $command
+
+
+Feel free to choose the method that best suits your needs. If you have any questions or need further assistance, I'm here to help!

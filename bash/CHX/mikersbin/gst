@@ -1,0 +1,19 @@
+#!/bin/bash
+# to create new branch
+#    git checkout -B NewBranchName
+#    git push
+prog=${0##*/}
+case ${prog} in
+	"gch")
+		git checkout ${@}
+		exit $?
+		;;
+	"gbr")
+		git branch
+		exit $?
+		;;
+	"gst")
+		git status
+		exit $?
+		;;
+esac

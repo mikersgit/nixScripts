@@ -1,0 +1,46 @@
+#!/bin/bash
+###########
+## ----------------------------------------------------------------------------------------------------------
+##  Copyright 2026, ChampionX
+##
+##  ChampionX CONFIDENTIAL AND PROPRIETARY
+##  This software is an unpublished work and contains valuable trade secrets that are confidential and 
+##  proprietary to ChampionX, and may only be disclosed to individuals who have entered into a
+##  confidentiality agreement with
+##  ChampionX, and may not be copied or reproduced in whole or in part.
+
+EXHOME="/home/exodus"
+DB="${EXHOME}/Databases/Genesis/genesis-config.sqlite"
+SQL=/usr/bin/sqlite3
+TABLE=SystemConfig
+FIELD=PcpEnabled
+
+function enablePcp() {
+	${SQL} ${DB} "update ${TABLE} set ${FIELD}=1 ;"
+	listPcp
+}
+
+function disablePcp() {
+	${SQL} ${DB} "update ${TABLE} set ${FIELD}=0 ;"
+	listPcp
+}
+
+function listPcp() {
+	${SQL} ${DB} -header "select \"${FIELD}\" from ${TABLE} ;"
+}
+
+if [[ ${#} -lt 1 || ${1} = "help" ]] ;then
+	echo "${0##*/} [list|enable|disable|help]"
+	exit 1
+fi
+if [[ $1 = "list" ]] ;then
+	listPcp
+	exit 0
+fi
+if [[ $1 = "enable" ]] ;then
+	enablePcp
+fi
+if [[ $1 = "disable" ]] ;then
+	disablePcp
+fi
+exit 0

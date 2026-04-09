@@ -1,0 +1,25 @@
+
+function imageMount() {
+    function listMnts(){
+      mount -t ext4 |grep mnt
+    }
+    img=$1
+    mnt=$2
+    if file ${img} | grep -q ext4
+    then
+       echo "tbone"
+       mount ${img} ${mnt}
+    elif file ${img} |grep -q MBR
+    then
+       echo "bbb"
+       	if [ ${WSL} -eq 1 ];then
+       		mount -v -o offset=1048576 -t ext4 ${img} ${mnt}
+	else
+       		mount -o offset=1048576 ${img} ${mnt}
+       fi
+    else
+       echo -e "\n=========== no mount type found for ${img} ===========\n"
+    fi
+
+    df -h
+}

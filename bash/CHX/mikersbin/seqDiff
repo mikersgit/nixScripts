@@ -1,0 +1,8 @@
+#!/bin/bash
+revs="^"
+for d in $(seq 1 6)
+{
+	echo "HEAD${revs} ${d}" 
+	git diff --name-only HEAD${revs}
+	revs=${revs}"^"
+}

@@ -1,0 +1,48 @@
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "BBB TB1p0",
+     "Address": "107.85.67.117:8080",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/BBB TB1p0"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "BBB TB1p1",
+     "Address": "107.85.117:8081",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/BBB TB1p1"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "Tbone TB3p0",
+     "Address": "166.131.79.1:8080",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/Tbone TB3p0"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "Tbone TB3p1",
+     "Address": "166.131.79.1:8081",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/Tbone TB3p1"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "Tbone TB5p0",
+     "Address": "107.85.67.63:8080",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/Tbone TB5p0"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "Tbone TB5p1",
+     "Address": "107.85.67.63:8081",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/Tbone TB5p1"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "Tbone FloorVFDp0",
+     "Address": "107.85.67.64:8080",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/Tbone FloorVFDp0"
+   },
+   {
+     "CompanyLease": "NorthWest Houston Lab",
+     "Name": "BBB FloorVFDp1",
+     "Address": "107.85.67.64:8081",
+     "CompanyLeaseSlashName": "NorthWest Houston Lab/BBB FloorVFDp1"
+   }

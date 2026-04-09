@@ -1,0 +1,30 @@
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/crontab', which is also in package cron 3.0pl1-128+deb9u1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/logrotate.d/apt', which is also in package apt 1.4.11
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/logrotate.d/dpkg', which is also in package dpkg 1.18.25
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/logrotate.d/monit', which is also in package monit 1:5.20.0-6+deb9u1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/logrotate.d/nginx', which is also in package nginx-common 1.10.3-1+deb9u5
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/logrotate.d/rsyslog', which is also in package rsyslog 8.24.0-1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/monit/monitrc', which is also in package monit 1:5.20.0-6+deb9u1
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/resolvconf/resolv.conf.d/head', which is also in package resolvconf 1.79
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/sudoers.d/admin', which is also in package smarten-system-sudoupdate 1.63
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/sudoers.d/exodus', which is also in package smarten-system-sudoupdate 1.63
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/etc/sudoers.d/sudoers-orig', which is also in package smarten-system-sudoupdate 1.63
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/usr/local/bin/ip_check.sh', which is also in package smarten-patch6143 1.0.0
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/usr/local/sbin/check_services.sh', which is also in package smarten-patch6143 1.0.0
+dpkg: warning: overriding problem because --force enabled:
+dpkg: warning: trying to overwrite '/var/spool/cron/crontabs/root', which is also in package smarten-patch6143 1.0.0
+Setting up smarten-system (6.1.0.63.24332) ...
+

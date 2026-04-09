@@ -1,0 +1,257 @@
+################################################
+========== updating an existing image ==========
+################################################
+
+#### get firmware image from exodus center ####
+# http://exodus.center/files/genesis/smarten-5.0.0.35.4401.tar.xz
+# $ echo $ecenter
+# 50.116.29.158
+scp -i "${key}" -rp -P 2730 exodus@${ecenter}:/usr/local/www/files/genesis/smarten-5.0.0.35.4401.tar.xz .
+
+#### get the sdcard image to which you are going to apply the new firmware ####
+# http://exodus.center/files/genesis/current_release/RodLift/sdcard-20220714-5.0.0.34.img.xz
+scp -i "${key}" -rp -P 2730 exodus@${ecenter}:/usr/local/www/files/genesis/current_release/RodLift/sdcard-20220714-5.0.0.34.img.xz .
+
+#### Push files to Debian system (BBB or Tbone) #### 
+$ echo $hmip
+192.168.0.62
+
+## on Debian as exodus
+cd
+mkdir tmp
+
+## on system with files
+scp -i "${key}" -rp -P 2730 sdcard-20220714-5.0.0.34.img.xz smarten-5.0.0.35.4401.tar.xz exodus@${hmip}:tmp/.
+exodus@192.168.0.62's password:
+
+## copy image tools to debian system
+sdcardBuild.sh
+createSystemUpdate.sh
+replaceSmartenTar.sh
+convert2FreshImg.sh
+findWindowsCRLF.sh
+genperm.sh
+setPerms.sh
+allPermMode4.txt
+gatherModesPerms.sh
+scp -i "${key}" -rp -P 2730 sdcardBuild.sh createSystemUpdate.sh replaceSmartenTar.sh convert2FreshImg.sh findWindowsCRLF.sh genperm.sh setPerms.sh allPermMode4.txt gatherModesPerms.sh exodus@${hmip}:tmp/.
+
+####### on debian system start as exodus sudo to  root
+sudo bash -
+cd ~exodus/tmp
+ /home/exodus/tmp]$ ./sdcardBuild.sh
+USAGE: ./sdcardBuild.sh sdcard-YYYYMMDD.img[.xz] [-m|u|d]
+
+######## execute sdcardBuild script with sdcard image
+####################
+/home/exodus/tmp]$ ./sdcardBuild.sh sdcard-20220714-5.0.0.34.img.xz
+Decompressing sdcard-20220714-5.0.0.34.img.xz, this takes about 5 minutes
+Wed Oct 12 16:20:57 CDT 2022
+16:23:00
+real    2m4.928s
+user    1m11.735s
+sys     0m9.163s
+Wed Oct 12 16:23:02 CDT 2022
+./sdcardBuild.sh: line 56: 23498 Terminated              timer
+Filesystem     1K-blocks   Used Available Use% Mounted on
+/dev/loop0        667648 576348     77396  89% /mnt/img
+Copying mounted sdcard image to /build/rootfs-20220714, this can take up to 10 minutes.
+Wed Oct 12 16:23:04 CDT 2022
+23655 (process ID) old priority 0, new priority -10
+16:25:08
+real    2m5.095s
+user    0m1.566s
+sys     0m19.768s
+        =========
+Terminating timer
+        =========
+Wed Oct 12 16:25:09 CDT 2022
+./sdcardBuild.sh: line 95: 23654 Terminated              timer
+DEBUG: --exclude=.bash_history, also use '-x' option to avoid crossing mount point
+Differences between  /mnt/img/ /build/rootfs-20220714/, this takes about 2 minutes
+Wed Oct 12 16:25:09 CDT 2022
+sending incremental file list
+
+sent 817,567 bytes  received 3,126 bytes  7,105.57 bytes/sec
+total size is 529,321,604  speedup is 644.97 (DRY RUN)
+
+real    1m55.047s
+user    0m15.008s
+sys     0m15.619s
+Wed Oct 12 16:27:04 CDT 2022
+DEBUG: --exclude=.bash_history, also use '-x' option to avoid crossing mount point
+Differences between  /build/rootfs-20220714/ /mnt/img/, this takes about 2 minutes
+Wed Oct 12 16:27:04 CDT 2022
+sending incremental file list
+
+
+sent 817,676 bytes  received 3,126 bytes  7,635.37 bytes/sec
+total size is 529,321,604  speedup is 644.88 (DRY RUN)
+
+real    1m46.834s
+user    0m14.802s
+sys     0m14.645s
+Wed Oct 12 16:28:51 CDT 2022
+
+########### replace the tar in the image
+/home/exodus/tmp]$ ./replaceSmartenTar.sh
+USAGE: ./replaceSmartenTar.sh <target dir> <smarten tar file>
+EG.    ./replaceSmartenTar.sh  /build/rootfs-20220526 smarten-5.0.0.33.4251.tar.xz
+
+/home/exodus/tmp]$ ./replaceSmartenTar.sh /build/rootfs-20220714/ smarten-5.0.0.35.4401.tar.xz
+.
+.
+.
+home/exodus/SmartenServer/package.json
+home/exodus/SmartenServer/reactRouter.js
+comparing with rsync: /build/rootfs-20220714// /mnt/img/
+sending incremental file list
+.
+.
+.
+home/exodus/SmartenServer/node_modules/winston/lib/winston/
+home/exodus/SmartenServer/node_modules/winston/lib/winston/config/
+home/exodus/SmartenServer/node_modules/winston/lib/winston/transports/
+home/exodus/SmartenServer/node_modules/winston/test/
+home/exodus/SmartenServer/node_modules/winston/test/transports/
+
+sent 826,822 bytes  received 12,395 bytes  7,594.72 bytes/sec
+total size is 529,321,026  speedup is 630.73 (DRY RUN)
+
+########## if the diff of files looks as expected (only /home/exodus/*) then execute rsync w/o '-n' dry run
+ rsync --exclude=.bash_history -xrplcv /build/rootfs-20220714/ /mnt/img/
+.
+.
+.
+home/exodus/SmartenServer/node_modules/winston/lib/winston/config/
+home/exodus/SmartenServer/node_modules/winston/lib/winston/transports/
+home/exodus/SmartenServer/node_modules/winston/test/
+home/exodus/SmartenServer/node_modules/winston/test/transports/
+
+sent 10,345,489 bytes  received 12,507 bytes  90,462.85 bytes/sec
+total size is 529,321,026  speedup is 51.10
+
+##### run genperms.sh to set the owner and modes of the firmware
+/home/exodus/tmp]$ ./genperm.sh /mnt/img/home/exodus/
+Working in:
+/mnt/img/home/exodus
+Only update the Dogtag file if changes were made to the operating system.
+Update Dogtag file? [N]|Y
+
+##### verify that no windows style CRLF have crept into the image
+./findWindowsCRLF.sh /mnt/img
+=========== This takes approximately 4 minutes =======
+        =========== /mnt/img/bin ===========
+        =========== /mnt/img/boot ===========
+        =========== /mnt/img/data ===========
+        =========== /mnt/img/etc ===========
+        =========== /mnt/img/home ===========
+        =========== /mnt/img/lib ===========
+        =========== /mnt/img/opt ===========
+        =========== /mnt/img/sbin ===========
+        =========== /mnt/img/usr ===========
+        =========== /mnt/img/var ===========
+
+        =========== /tmp/tmp.PS8g5f5QSf ===========
+/mnt/img/home/exodus/SmartenClient/build/robots.txt:                                                        ASCII text, with CRLF line terminators
+-rw-rw-r-- 1 exodus users 70 Sep 26 15:57 /mnt/img/home/exodus/SmartenClient/build/robots.txt
+
+Edit the file /tmp/tmp.PS8g5f5QSf to remove items that do not need to have CRLF removed.
+1 lines in the fix file
+Then the file can be used as input to fix the files
+       ./findWindowsCRLF.sh -F /tmp/tmp.PS8g5f5QSf
+./findWindowsCRLF.sh -F /tmp/tmp.PS8g5f5QSf
+-rw-rw-r-- 1 exodus users 70 Sep 26 15:57 /mnt/img/home/exodus/SmartenClient/build/robots.txt
+
+######### diff image directory with extracted tar one last time to make sure any differences (should be few) are expected
+./sdcardBuild.sh  sdcard-20220714-5.0.0.34.img -d
+DEBUG: --exclude=.bash_history, also use '-x' option to avoid crossing mount point
+Differences between  /mnt/img/ /build/rootfs-20220714/, this takes about 2 minutes
+Wed Oct 12 17:10:50 CDT 2022
+sending incremental file list
+etc/dogtag
+home/exodus/SmartenClient/build/robots.txt
+
+sent 817,574 bytes  received 3,134 bytes  7,564.13 bytes/sec
+total size is 529,321,604  speedup is 644.96 (DRY RUN)
+
+real    1m48.672s
+user    0m14.831s
+sys     0m14.996s
+Wed Oct 12 17:12:39 CDT 2022
+
+####### file are now update, unmount the image
+./sdcardBuild.sh sdcard-20220714-5.0.0.34.img -u
+./sdcardBuild.sh  sdcard-20220714-5.0.0.34.img -u
+zero-ing out free space on mounted image /mnt/img
+dd: error writing '/mnt/img/zero': No space left on device
+9674+0 records in
+9673+0 records out
+79241216 bytes (79 MB, 76 MiB) copied, 2.48111 s, 31.9 MB/s
+
+######## rename the image if needed
+ mv sdcard-20220714-5.0.0.34.img sdcard-20220714-5.0.0.35.img
+
+####### Generate md5sum for the smarten tar file
+ md5sum smarten-5.0.0.35.4401.tar.xz > smarten-5.0.0.35.4401.md5
+
+##### pull sdcard image and md5sum file to system for transfer to exodus.center
+##### do not xz compress on BBB or Tbone, takes a very long (hours) time
+scp -i "${key}" -rp -P 2730 exodus@${hmip}:tmp/sdcard-2* .
+sdcard-20220714-5.0.0.35.img                          100%  680MB   4.0MB/s   02:49
+$ scp -i "${key}" -rp -P 2730 exodus@${hmip}:tmp/smarten*md5 .
+smarten-5.0.0.35.4401.md5 
+
+######## multi thread compress
+time xz -T 0 sdcard-20220714-5.0.0.35.img
+real    1m29.404s
+user    5m14.281s
+sys     0m2.749s
+
+####### push new files to exodus.center
+ scp -i "${key}" -rp -P 2730 sdcard-20220714-5.0.0.35.img.xz smarten-5.0.0.35.4401.md5 smarten-5.0.0.35.4401.tar.xz exodus@${ecenter}:/usr/local/www/files/genesis/current_release/RodLift/.
+
+######## back on the debian system create the SystemUpdate image and the sdcard fresh install image.
+####### mount the sdcard image
+ ./sdcardBuild.sh sdcard-20220714-5.0.0.35.img -m
+Filesystem     1K-blocks   Used Available Use% Mounted on
+/dev/loop0        667648 576356     77388  89% /mnt/img
+
+### create the tar file, assumes image is mounted at /mnt/img
+./createSystemUpdate.sh
+.
+.
+.
+var/cache/debconf/
+var/cache/debconf/passwords.dat
+var/cache/apt/
+var/cache/apt/archives/
+var/cache/apt/archives/partial/
+var/cache/ldconfig/
+
+real    2m11.690s
+user    0m2.959s
+sys     0m17.589s
+
+
+# change name to match release
+ mv /build/SystemUpdate.tar SystemUpdate-20220714-5.0.0.35.tar
+# unmount image
+ ./sdcardBuild.sh sdcard-20220714-5.0.0.35.img -u
+
+# pull, compress, then push
+ scp -i "${key}" -rp -P 2730 exodus@${hmip}:tmp/SystemUpdate* .
+ xz -T 0 SystemUpdate-20220714-5.0.0.35.tar
+scp -i "${key}" -rp -P 2730 SystemUpdate-20220714-5.0.0.35.tar.xz exodus@${ecenter}:/usr/local/www/files/genesis/current_release/RodLift/. 
+
+##### back on the debian system, convert the update image to a fresh install image.
+ ./convert2FreshImg.sh sdcard-20220714-5.0.0.35.img
+Filesystem     1K-blocks   Used Available Use% Mounted on
+/dev/loop0        667648 576356     77388  89% /mnt/img
+
+#### unmount fresh image
+ ./sdcardBuild.sh sdcard-20220714-5.0.0.35-fresh.img -u
+# pull, compress, push
+scp -i "${key}" -rp -P 2730 exodus@${hmip}:tmp/sdcard-*fresh* .
+xz -T 0 sdcard-20220714-5.0.0.35-fresh.img
+scp -i "${key}" -rp -P 2730 sdcard-20220714-5.0.0.35-fresh.img.xz exodus@${ecenter}:/usr/local/www/files/sd_card/release/.
