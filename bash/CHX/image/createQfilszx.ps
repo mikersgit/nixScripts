@@ -1,0 +1,16 @@
+# Create selfextracting archive of files in Qfil directory
+WSL=0
+if [ -e /mnt/c ]; then
+	SFXFILE=qfil.exe
+	WSL=1
+	echo "On Windows WSL"
+	echo "working in: $PWD"
+	/mnt/c/Program\ Files/7-Zip/7z.exe a -bb3 -sfx $SFXFILE *mbn *img *bin *xml devinfo *txt sec.dat *ps1 prg
+	echo -e "\n========= Created $SFXFILE ========="
+	ls -lh $SFXFILE
+else
+	echo "intented to run on windows machine in the WSL system"
+	echo "can also be run in powershell"
+fi
+#PowerShell
+#&'C:\Program Files\7-Zip\7z.exe' a -bb3 -sfx qfil.exe *mbn *img *bin *xml devinfo *txt sec.dat
