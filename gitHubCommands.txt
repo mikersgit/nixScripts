@@ -1,0 +1,9 @@
+gh repo clone --help
+gh repo clone https://github.com/mikersgit/nixScripts
+gh auth login
+gh auth login --help
+gh auth login --web
+gh repo clone mikersgit/nixScripts
+gh add --help
+gh push --help
+gh repo --help
