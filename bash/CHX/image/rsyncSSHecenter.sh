@@ -38,4 +38,4 @@ verifyConnection $ecenter
 
 echo "push ${fl} to ${path} on ${duser}@${dhost}."
 #rsync -e "ssh -i ~/src/mwr_rsa -p 2730" --partial --append --progress  ${fl} ${duser}@${dhost}:${path}.
-rsync -e "ssh -i $SRC/mwr_rsa -p 2730" --partial --append --progress  ${fl} ${duser}@${dhost}:${path}.
+rsync -e "ssh -p 2730" --partial --append --progress  ${fl} ${duser}@${dhost}:${path}.

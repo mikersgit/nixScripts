@@ -29,7 +29,7 @@ KERNARCH="$(uname -m)"
 
 # Extract GenesisMCP build version
 GENMCP="$(strings -el ${GENDLL} |
- awk '{if ($1 == "Assembly") {
+ awk '{if ($1 == "Assembly" && $2 == "Version") {
          printf "%s ", $0
          if (getline > 0 ) {
                  print
