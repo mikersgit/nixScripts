@@ -37,3 +37,6 @@ else
 	ConfExists=0
 	addVars
 fi
+# Because the script is meant to be sourced, need to clean up variables
+# used for execution, but not needed for ongoing environment
+unset v varArray ConfExists EnvFile ans idx baseDir EnvFile addVars
